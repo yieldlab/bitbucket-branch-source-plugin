@@ -93,7 +93,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     private static final Logger LOGGER = Logger.getLogger(BitbucketCloudApiClient.class.getName());
     private static final String V2_API_BASE_URL = "https://api.bitbucket.org/2.0/repositories/";
     private static final String V2_TEAMS_API_BASE_URL = "https://api.bitbucket.org/2.0/teams/";
-    private static final int MAX_PAGES = 100;
     private static final int API_RATE_LIMIT_CODE = 429;
     public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
     private HttpClient client;
@@ -198,7 +197,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
         }
         pullRequests.addAll(page.getValues());
-        while (page.getNext() != null && pageNumber < MAX_PAGES) {
+        while (page.getNext() != null) {
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
@@ -392,7 +391,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             String response = getRequest(url = String.format(urlTemplate, pageNumber));
             BitbucketRepositoryHooks page = parsePaginatedRepositoryHooks(response);
             repositoryHooks.addAll(page.getValues());
-            while (page.getNext() != null && pageNumber < MAX_PAGES) {
+            while (page.getNext() != null) {
                 if (Thread.interrupted()) {
                     throw new InterruptedException();
                 }
@@ -477,7 +476,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         } catch (IOException e) {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
         }
-        while (page.getNext() != null && pageNumber < MAX_PAGES) {
+        while (page.getNext() != null) {
                 pageNumber++;
                 response = getRequest(url = String.format(urlTemplate, pageNumber.toString()));
             try {
@@ -621,19 +620,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             throw new IOException("Communication error for url: " + path, e);
         } finally {
             httpHead.releaseConnection();
-        }
-    }
-
-    private int getRequestStatus(String path) throws IOException {
-        HttpClient client = getHttpClient();
-        GetMethod httpget = new GetMethod(path);
-        try {
-            executeMethod(client, httpget);
-            return httpget.getStatusCode();
-        } catch (IOException e) {
-            throw new IOException("Communication error for url: " + path, e);
-        } finally {
-            httpget.releaseConnection();
         }
     }
 
