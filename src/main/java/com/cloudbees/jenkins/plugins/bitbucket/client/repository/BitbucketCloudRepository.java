@@ -24,18 +24,18 @@
 package com.cloudbees.jenkins.plugins.bitbucket.client.repository;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
-
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryOwner;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCloudRepository implements BitbucketRepository {
@@ -48,7 +48,10 @@ public class BitbucketCloudRepository implements BitbucketRepository {
     private BitbucketCloudRepositoryOwner owner;
 
     @JsonProperty("updated_on")
-    private String updatedOn;
+    private Date updatedOn;
+
+    @JsonProperty("slug")
+    private String slug;
 
     // JSON mapping added in setter because the field can not be called "private"
     private Boolean priv;
@@ -84,8 +87,23 @@ public class BitbucketCloudRepository implements BitbucketRepository {
         this.owner = owner;
     }
 
-    public void setUpdatedOn(String updatedOn) {
+    @SuppressFBWarnings("EI_EXPOSE_REP2")
+    public void setUpdatedOn(Date updatedOn) {
         this.updatedOn = updatedOn;
+    }
+
+    @SuppressFBWarnings("EI_EXPOSE_REP")
+    public Date getUpdatedOn() {
+        return updatedOn;
+    }
+
+    @JsonProperty("slug")
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     @Override
