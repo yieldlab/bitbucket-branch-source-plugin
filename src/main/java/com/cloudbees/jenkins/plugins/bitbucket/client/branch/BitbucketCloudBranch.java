@@ -73,7 +73,7 @@ public class BitbucketCloudBranch implements BitbucketBranch {
         return dateInMillis;
     }
 
-    public static class Target{
+    public static class Target {
         private final String hash;
         private final BitbucketCloudRepository repo;
 
