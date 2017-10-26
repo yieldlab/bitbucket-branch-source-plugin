@@ -54,14 +54,11 @@ import hudson.ProxyConfiguration;
 import hudson.Util;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
-import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpState;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.NameValuePair;
-import org.apache.commons.httpclient.URIException;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
@@ -109,6 +106,21 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
         this.owner = owner;
         this.repositoryName = repositoryName;
+
+        // Create Http client
+        HttpClient client = new HttpClient(connectionManager);
+        client.getParams().setConnectionManagerTimeout(10 * 1000);
+        client.getParams().setSoTimeout(60 * 1000);
+
+        if (credentials != null) {
+            client.getState().setCredentials(AuthScope.ANY, credentials);
+            client.getParams().setAuthenticationPreemptive(true);
+        } else {
+            client.getParams().setAuthenticationPreemptive(false);
+        }
+
+        setClientProxyParams("bitbucket.org", client);
+        this.client = client;
     }
 
     /**
@@ -486,26 +498,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return getRepositories(null);
     }
 
-    private synchronized HttpClient getHttpClient() {
-        if (this.client == null) {
-            HttpClient client = new HttpClient(connectionManager);
-            client.getParams().setConnectionManagerTimeout(10 * 1000);
-            client.getParams().setSoTimeout(60 * 1000);
-
-            if (credentials != null) {
-                client.getState().setCredentials(AuthScope.ANY, credentials);
-                client.getParams().setAuthenticationPreemptive(true);
-            } else {
-                client.getParams().setAuthenticationPreemptive(false);
-            }
-
-            setClientProxyParams("bitbucket.org", client);
-            this.client = client;
-        }
-
-        return this.client;
-    }
-
     private static void setClientProxyParams(String host, HttpClient client) {
         Jenkins jenkins = Jenkins.getInstance();
         ProxyConfiguration proxyConfig = null;
@@ -532,52 +524,24 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
     }
 
-    private static int executeMethod(HttpClient client, HttpMethod method) throws IOException {
-        Jenkins jenkins = Jenkins.getInstance();
-        ProxyConfiguration proxyConfig = null;
-        if (jenkins != null) {
-            proxyConfig = jenkins.proxy;
-        }
-
-        Proxy proxy = Proxy.NO_PROXY;
-        if (proxyConfig != null) {
-            proxy = proxyConfig.createProxy(getMethodHost(method));
-        }
-
-        if (proxy.type() != Proxy.Type.DIRECT) {
-            final InetSocketAddress proxyAddress = (InetSocketAddress)proxy.address();
-            LOGGER.fine("Jenkins proxy: " + proxy.address());
-
-            final HostConfiguration hc = new HostConfiguration(client.getHostConfiguration());
-            hc.setProxy(proxyAddress.getHostString(), proxyAddress.getPort());
-
-            String username = proxyConfig.getUserName();
-            String password = proxyConfig.getPassword();
-            if (username != null && !"".equals(username.trim())) {
-                LOGGER.fine("Using proxy authentication (user=" + username + ")");
-
-                final HttpState state = new HttpState();
-                state.setProxyCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                return client.executeMethod(hc, method, state);
-            } else {
-                return client.executeMethod(hc, method);
+    private int executeMethod(HttpMethod httpMethod) throws InterruptedException, IOException {
+        int status = client.executeMethod(httpMethod);
+        while (status == API_RATE_LIMIT_CODE) {
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
             }
-        } else {
-            return client.executeMethod(method);
+            LOGGER.fine("Bitbucket Cloud API rate limit reached, sleeping for 5 sec then retry...");
+            Thread.sleep(5000);
+            status = client.executeMethod(httpMethod);
         }
+        return status;
     }
 
     private String getRequest(String path) throws IOException, InterruptedException {
-        HttpClient client = getHttpClient();
         GetMethod httpget = new GetMethod(path);
         try {
-            executeMethod(client, httpget);
+            executeMethod(httpget);
             String response = getResponseContent(httpget, httpget.getResponseContentLength());
-            while (httpget.getStatusCode() == API_RATE_LIMIT_CODE) {
-                Thread.sleep(5000);
-                executeMethod(client, httpget);
-                response = getResponseContent(httpget, httpget.getResponseContentLength());
-            }
             if (httpget.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
                 throw new FileNotFoundException("URL: " + path);
             }
@@ -597,15 +561,9 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     private int headRequestStatus(String path) throws IOException, InterruptedException {
-        HttpClient client = getHttpClient();
         HeadMethod httpHead = new HeadMethod(path);
         try {
-            executeMethod(client, httpHead);
-            while (httpHead.getStatusCode() == API_RATE_LIMIT_CODE) {
-                Thread.sleep(5000);
-                executeMethod(client, httpHead);
-            }
-            return httpHead.getStatusCode();
+            return executeMethod(httpHead);
         } catch (IOException e) {
             throw new IOException("Communication error for url: " + path, e);
         } finally {
@@ -613,23 +571,10 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
     }
 
-    private static String getMethodHost(HttpMethod method) {
-        try {
-            return method.getURI().getHost();
-        } catch (URIException e) {
-            throw new IllegalStateException("Could not obtain host part for method " + method, e);
-        }
-    }
-
     private void deleteRequest(String path) throws IOException, InterruptedException {
-        HttpClient client = getHttpClient();
         DeleteMethod httppost = new DeleteMethod(path);
         try {
-            executeMethod(client, httppost);
-            while (httppost.getStatusCode() == API_RATE_LIMIT_CODE) {
-                Thread.sleep(5000);
-                executeMethod(client, httppost);
-            }
+            executeMethod(httppost);
             if (httppost.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
                 throw new FileNotFoundException("URL: " + path);
             }
@@ -646,13 +591,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     private String postRequest(PostMethod httppost) throws IOException, InterruptedException {
-        HttpClient client = getHttpClient();
         try {
-            executeMethod(client, httppost);
-            while (httppost.getStatusCode() == API_RATE_LIMIT_CODE) {
-                Thread.sleep(5000);
-                executeMethod(client, httppost);
-            }
+            executeMethod(httppost);
             if (httppost.getStatusCode() == HttpStatus.SC_NO_CONTENT) {
                 // 204, no content
                 return "";
