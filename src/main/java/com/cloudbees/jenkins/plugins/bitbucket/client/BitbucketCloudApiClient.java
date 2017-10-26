@@ -530,6 +530,10 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
+            /*
+                TODO: When bitbucket starts supporting rate limit expiration time, remove 5 sec wait and put code
+                      to wait till expiration time is over. It should also fix the wait for ever loop.
+             */
             LOGGER.fine("Bitbucket Cloud API rate limit reached, sleeping for 5 sec then retry...");
             Thread.sleep(5000);
             status = client.executeMethod(httpMethod);
