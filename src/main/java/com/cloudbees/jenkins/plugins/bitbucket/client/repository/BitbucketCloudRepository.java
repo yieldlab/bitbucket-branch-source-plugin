@@ -25,7 +25,6 @@ package com.cloudbees.jenkins.plugins.bitbucket.client.repository;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
@@ -82,14 +81,12 @@ public class BitbucketCloudRepository implements BitbucketRepository {
         this.owner = owner;
     }
 
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public void setUpdatedOn(Date updatedOn) {
-        this.updatedOn = updatedOn;
+        this.updatedOn = updatedOn == null ? null : (Date)updatedOn.clone();
     }
 
-    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Date getUpdatedOn() {
-        return updatedOn;
+        return updatedOn == null ? null : (Date)updatedOn.clone();
     }
 
     @Override
