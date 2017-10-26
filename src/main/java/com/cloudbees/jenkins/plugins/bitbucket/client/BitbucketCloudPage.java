@@ -24,11 +24,10 @@
 package com.cloudbees.jenkins.plugins.bitbucket.client;
 
 import com.google.common.collect.ImmutableList;
-import org.codehaus.jackson.annotate.JsonProperty;
-
+import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.List;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 /**
  * Bitbucket paginated resource
