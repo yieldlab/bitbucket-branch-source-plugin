@@ -30,7 +30,6 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.events.BitbucketCloudPullR
 import com.cloudbees.jenkins.plugins.bitbucket.client.events.BitbucketCloudPushEvent;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;

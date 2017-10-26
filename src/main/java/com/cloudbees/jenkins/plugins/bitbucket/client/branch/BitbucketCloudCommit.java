@@ -24,7 +24,6 @@
 package com.cloudbees.jenkins.plugins.bitbucket.client.branch;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
