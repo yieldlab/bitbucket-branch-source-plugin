@@ -27,7 +27,6 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
 
@@ -37,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCloudRepository implements BitbucketRepository {
 
     private String scm;
@@ -49,9 +47,6 @@ public class BitbucketCloudRepository implements BitbucketRepository {
 
     @JsonProperty("updated_on")
     private Date updatedOn;
-
-    @JsonProperty("slug")
-    private String slug;
 
     // JSON mapping added in setter because the field can not be called "private"
     private Boolean priv;
@@ -95,15 +90,6 @@ public class BitbucketCloudRepository implements BitbucketRepository {
     @SuppressFBWarnings("EI_EXPOSE_REP")
     public Date getUpdatedOn() {
         return updatedOn;
-    }
-
-    @JsonProperty("slug")
-    public String getSlug() {
-        return slug;
-    }
-
-    public void setSlug(String slug) {
-        this.slug = slug;
     }
 
     @Override

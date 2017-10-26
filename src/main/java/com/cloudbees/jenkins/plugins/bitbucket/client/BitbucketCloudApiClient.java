@@ -23,6 +23,7 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.client;
 
+import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBuildStatus;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
@@ -70,8 +71,6 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
 import java.io.ByteArrayOutputStream;
@@ -82,11 +81,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.logging.Logger;
 
 public class BitbucketCloudApiClient implements BitbucketApi {
@@ -94,14 +91,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     private static final String V2_API_BASE_URL = "https://api.bitbucket.org/2.0/repositories/";
     private static final String V2_TEAMS_API_BASE_URL = "https://api.bitbucket.org/2.0/teams/";
     private static final int API_RATE_LIMIT_CODE = 429;
-    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
     private HttpClient client;
     private static final MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
     private final String owner;
     private final String repositoryName;
     private final UsernamePasswordCredentials credentials;
-    private final ObjectMapper mapper = createObjectMapper();
-
     static {
         connectionManager.getParams().setDefaultMaxConnectionsPerHost(20);
         connectionManager.getParams().setMaxTotalConnections(22);
@@ -192,7 +186,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         String response = getRequest(url = String.format(urlTemplate, pageNumber));
         BitbucketPullRequests page;
         try {
-            page = parse(response, BitbucketPullRequests.class);
+            page = JsonParser.toJava(response, BitbucketPullRequests.class);
         } catch (IOException e) {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
         }
@@ -204,7 +198,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             pageNumber++;
             response = getRequest(url = String.format(urlTemplate, pageNumber));
             try {
-                page = parse(response, BitbucketPullRequests.class);
+                page = JsonParser.toJava(response, BitbucketPullRequests.class);
             } catch (IOException e) {
                 throw new IOException("I/O error when parsing response from URL: " + url, e);
             }
@@ -222,7 +216,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         String url = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/pullrequests/" + id;
         String response = getRequest(url);
         try {
-            return parse(response, BitbucketPullRequestValue.class);
+            return JsonParser.toJava(response, BitbucketPullRequestValue.class);
         } catch (IOException e) {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
         }
@@ -240,7 +234,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         String url = V2_API_BASE_URL + owner + "/" + repositoryName;
         String response = getRequest(url);
         try {
-            return parse(response, BitbucketCloudRepository.class);
+            return JsonParser.toJava(response, BitbucketCloudRepository.class);
         } catch (IOException e) {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
         }
@@ -296,7 +290,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             LOGGER.fine(String.format("Could not find default branch for %s/%s", this.owner, this.repositoryName));
             return null;
         }
-        Map mainbranch = parse(response, Map.class);
+        Map mainbranch = JsonParser.toJava(response, Map.class);
         if (mainbranch != null) {
             return (String) mainbranch.get("name");
         }
@@ -332,7 +326,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             return null;
         }
         try {
-            return parse(response, BitbucketCloudCommit.class);
+            return JsonParser.toJava(response, BitbucketCloudCommit.class);
         } catch (IOException e) {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
         }
@@ -348,7 +342,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 + "/commits?fields=values.hash&pagelen=1";
         String response = getRequest(url);
         try {
-            BitbucketPullRequestCommits commits = parse(response, BitbucketPullRequestCommits.class);
+            BitbucketPullRequestCommits commits = JsonParser.toJava(response, BitbucketPullRequestCommits.class);
             for (BitbucketPullRequestCommit commit : Util.fixNull(commits.getValues())) {
                 return commit.getHash();
             }
@@ -363,7 +357,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
      */
     @Override
     public void registerCommitWebHook(@NonNull BitbucketWebHook hook) throws IOException, InterruptedException {
-        postRequest(V2_API_BASE_URL + owner + "/" + repositoryName + "/hooks", asJson(hook));
+        postRequest(V2_API_BASE_URL + owner + "/" + repositoryName + "/hooks", JsonParser.toJson(hook));
     }
 
     /**
@@ -413,7 +407,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     public void postBuildStatus(@NonNull BitbucketBuildStatus status) throws IOException, InterruptedException {
         String path = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/commit/" + status.getHash()
                 + "/statuses/build";
-        postRequest(path, serialize(status));
+        postRequest(path, JsonParser.toJson(status));
     }
 
     /**
@@ -426,12 +420,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
 
     private BitbucketRepositoryHooks parsePaginatedRepositoryHooks(String response) throws IOException {
         BitbucketRepositoryHooks parsedResponse;
-        parsedResponse = mapper.readValue(response, BitbucketRepositoryHooks.class);
+        parsedResponse = JsonParser.toJava(response, BitbucketRepositoryHooks.class);
         return parsedResponse;
-    }
-
-    private String asJson(BitbucketWebHook hook) throws IOException {
-        return mapper.writeValueAsString(hook);
     }
 
     /**
@@ -442,7 +432,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     public BitbucketTeam getTeam() throws IOException, InterruptedException {
         try {
             String response = getRequest(V2_TEAMS_API_BASE_URL + owner);
-            return parse(response, BitbucketCloudTeam.class);
+            return JsonParser.toJava(response, BitbucketCloudTeam.class);
         } catch (FileNotFoundException e) {
             return null;
         } catch (IOException e) {
@@ -471,7 +461,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         String response = getRequest(url = String.format(urlTemplate, pageNumber.toString()));
         PaginatedBitbucketRepository page;
         try {
-            page = parse(response, PaginatedBitbucketRepository.class);
+            page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
             repositories.addAll(page.getValues());
         } catch (IOException e) {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
@@ -480,7 +470,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 pageNumber++;
                 response = getRequest(url = String.format(urlTemplate, pageNumber.toString()));
             try {
-                page = parse(response, PaginatedBitbucketRepository.class);
+                page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
                 repositories.addAll(page.getValues());
             } catch (IOException e) {
                 throw new IOException("I/O error when parsing response from URL: " + url, e);
@@ -705,10 +695,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return response;
     }
 
-    private <T> String serialize(T o) throws IOException {
-        return mapper.writeValueAsString(o);
-    }
-
     private String postRequest(String path, String content) throws IOException, InterruptedException {
         PostMethod httppost = new PostMethod(path);
         httppost.setRequestEntity(new StringRequestEntity(content, "application/json", "UTF-8"));
@@ -723,29 +709,15 @@ public class BitbucketCloudApiClient implements BitbucketApi {
 
     private List<BitbucketCloudBranch> getAllBranches(String response) throws IOException, InterruptedException {
         List<BitbucketCloudBranch> branches = new ArrayList<BitbucketCloudBranch>();
-        BitbucketCloudPage<BitbucketCloudBranch> page = mapper.readValue(response,
+        BitbucketCloudPage<BitbucketCloudBranch> page = JsonParser.mapper.readValue(response,
                 new TypeReference<BitbucketCloudPage<BitbucketCloudBranch>>(){});
         branches.addAll(page.getValues());
         while (!page.isLastPage()){
             response = getRequest(page.getNext());
-            page = mapper.readValue(response,
+            page = JsonParser.mapper.readValue(response,
                     new TypeReference<BitbucketCloudPage<BitbucketCloudBranch>>(){});
             branches.addAll(page.getValues());
         }
         return branches;
     }
-
-    private <T> T parse(String response, Class<T> clazz) throws IOException {
-        return mapper.readValue(response, clazz);
-    }
-
-    private ObjectMapper createObjectMapper(){
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleDateFormat format = new SimpleDateFormat(DATE_FORMAT);
-        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-        mapper.setDateFormat(format);
-        mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return mapper;
-    }
-
 }

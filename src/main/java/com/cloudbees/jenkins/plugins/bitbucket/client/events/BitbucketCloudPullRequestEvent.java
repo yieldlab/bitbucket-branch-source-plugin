@@ -30,14 +30,12 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.pullrequest.BitbucketPullR
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudRepositoryOwner;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCloudPullRequestEvent implements BitbucketPullRequestEvent {
 
     @JsonProperty("pullrequest")

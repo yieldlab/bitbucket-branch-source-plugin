@@ -23,22 +23,21 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.api;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.ObjectCodec;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.DeserializationContext;
 import org.codehaus.jackson.map.JsonDeserializer;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A Href for something on bitbucket.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketHref {
     private String name;
     private String href;

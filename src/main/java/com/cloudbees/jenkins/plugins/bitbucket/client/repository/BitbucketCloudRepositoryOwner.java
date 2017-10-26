@@ -23,12 +23,9 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.client.repository;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryOwner;
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryOwner;
-
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCloudRepositoryOwner implements BitbucketRepositoryOwner {
 
     private String username;

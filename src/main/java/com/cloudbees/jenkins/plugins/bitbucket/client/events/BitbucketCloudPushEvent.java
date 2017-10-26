@@ -26,13 +26,12 @@ package com.cloudbees.jenkins.plugins.bitbucket.client.events;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPushEvent;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudRepository;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.codehaus.jackson.annotate.JsonProperty;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class BitbucketCloudPushEvent implements BitbucketPushEvent {
 
     private BitbucketCloudRepository repository;
@@ -60,14 +59,12 @@ public class BitbucketCloudPushEvent implements BitbucketPushEvent {
         this.push.changes = changes != null ? new ArrayList<>(changes) : new ArrayList<ChangeImpl>();
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Push {
         @JsonProperty
         private List<ChangeImpl> changes;
 
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ChangeImpl implements Change {
         private ReferenceImpl newRef;
         private ReferenceImpl oldRef;
@@ -110,7 +107,6 @@ public class BitbucketCloudPushEvent implements BitbucketPushEvent {
 
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ReferenceImpl implements Reference {
         private String type;
         private String name;
@@ -144,7 +140,6 @@ public class BitbucketCloudPushEvent implements BitbucketPushEvent {
         }
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class TargetImpl implements Target {
 
         private String hash;
