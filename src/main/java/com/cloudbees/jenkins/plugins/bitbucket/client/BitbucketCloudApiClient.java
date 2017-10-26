@@ -302,7 +302,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             LOGGER.fine(String.format("Could not find default branch for %s/%s", this.owner, this.repositoryName));
             return null;
         }
-        Map mainbranch = JsonParser.toJava(response, Map.class);
+        Map resp = JsonParser.toJava(response, Map.class);
+        Map mainbranch = (Map) resp.get("mainbranch");
         if (mainbranch != null) {
             return (String) mainbranch.get("name");
         }
