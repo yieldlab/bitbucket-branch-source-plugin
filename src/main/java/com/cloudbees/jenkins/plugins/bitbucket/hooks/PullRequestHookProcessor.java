@@ -100,7 +100,7 @@ public class PullRequestHookProcessor extends HookProcessor {
                             return false;
                         }
                         BitbucketSCMNavigator bbNav = (BitbucketSCMNavigator) navigator;
-                        if (!isServerUrlMatch(bbNav.getBitbucketServerUrl())) {
+                        if (!isServerUrlMatch(bbNav.getServerUrl())) {
                             return false;
                         }
                         return bbNav.getRepoOwner().equalsIgnoreCase(getPayload().getRepository().getOwnerName());
