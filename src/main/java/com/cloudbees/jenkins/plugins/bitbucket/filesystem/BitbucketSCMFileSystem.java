@@ -25,8 +25,6 @@
 
 package com.cloudbees.jenkins.plugins.bitbucket.filesystem;
 
-import java.io.IOException;
-
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource;
 import com.cloudbees.jenkins.plugins.bitbucket.BranchSCMHead;
 import com.cloudbees.jenkins.plugins.bitbucket.PullRequestSCMHead;
@@ -35,7 +33,6 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApiFactory;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -45,11 +42,13 @@ import hudson.model.Queue;
 import hudson.model.queue.Tasks;
 import hudson.scm.SCM;
 import hudson.security.ACL;
+import java.io.IOException;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 
 public class BitbucketSCMFileSystem extends SCMFileSystem {
 
@@ -120,7 +119,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             String repository = src.getRepository();
             String serverUrl = src.getServerUrl();
             StandardUsernamePasswordCredentials credentials;
-            credentials = lookupScanCredentials((Item)src.getOwner(), credentialsId);
+            credentials = lookupScanCredentials(src.getOwner(), credentialsId);
             
             BitbucketApi apiClient = BitbucketApiFactory.newInstance(serverUrl, credentials, owner, repository);
            		
@@ -129,8 +128,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                 ref = head.getName();
             } else if (head instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                
-                if (pr.getOrigin() != null) {
+                if (!(pr.getCheckoutStrategy() == ChangeRequestCheckoutStrategy.MERGE) && pr.getRepository() != null) {
                     return new BitbucketSCMFileSystem(apiClient, pr.getOriginName(), rev);
                 }
                 // we need to release here as we are not throwing an exception or transferring responsibility to FS
