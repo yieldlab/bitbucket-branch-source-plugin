@@ -572,7 +572,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
 
     private String getRequest(String path) throws IOException, InterruptedException {
         try (InputStream inputStream = getRequestAsInputStream(path)){
-            return IOUtils.toString(inputStream);
+            return IOUtils.toString(inputStream, "UTF-8");
         }
     }
 
