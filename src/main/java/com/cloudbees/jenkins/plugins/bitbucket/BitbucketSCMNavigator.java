@@ -515,8 +515,13 @@ public class BitbucketSCMNavigator extends SCMNavigator {
         BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, credentials, repoOwner, null);
         BitbucketTeam team = bitbucket.getTeam();
         if (team != null) {
-            String teamUrl =
-                    StringUtils.defaultIfBlank(getLink(team.getLinks(), "html"), serverUrl + "/" + team.getName());
+            String defaultTeamUrl;
+            if (team instanceof BitbucketServerProject) {
+                defaultTeamUrl = serverUrl + "/projects/" + team.getName();
+            } else {
+                defaultTeamUrl = serverUrl + "/" + team.getName();
+            }
+            String teamUrl = StringUtils.defaultIfBlank(getLink(team.getLinks(), "html"), defaultTeamUrl);
             String teamDisplayName = StringUtils.defaultIfBlank(team.getDisplayName(), team.getName());
             result.add(new ObjectMetadataAction(
                     teamDisplayName,

@@ -66,7 +66,7 @@ public class BitbucketBuildStatusNotifications {
             return;
         }
         String key = build.getParent().getFullName(); // use the job full name as the key for the status
-        String name = build.getDisplayName(); // use the build number as the display name of the status
+        String name = build.getFullDisplayName(); // use the build number as the display name of the status
         BitbucketBuildStatus status;
         Result result = build.getResult();
         if (Result.SUCCESS.equals(result)) {

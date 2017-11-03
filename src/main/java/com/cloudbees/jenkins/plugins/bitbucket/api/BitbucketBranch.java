@@ -40,4 +40,9 @@ public interface BitbucketBranch {
      */
     String getName();
 
+    /**
+     * @return the commit milliseconds from epoch
+     */
+    long getDateMillis();
+
 }
