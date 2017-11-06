@@ -46,6 +46,9 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.Bitbucke
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerWebhooks;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -63,8 +66,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
 import net.sf.json.JSONObject;
@@ -83,6 +88,7 @@ import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.type.TypeReference;
 
 /**
  * Bitbucket API client.
@@ -141,7 +147,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
-        this.baseURL = baseURL;
+        this.baseURL = Util.removeTrailingSlash(baseURL);
     }
 
     /**
@@ -675,12 +681,75 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     @Override
     public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException {
-        throw new IOException("List Directory Content not supported for BitBucket Server");
+        List<SCMFile> files = new ArrayList<>();
+        String path = parent.getPath();
+        String ref = Util.rawEncode(parent.getRef());
+        int start=0;
+        String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
+        String response = getRequest(String.format(url+"&start=%s&limit=%s", start, 500));
+        Map<String,Object> content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
+        Map page = (Map) content.get("children");
+        List<Map> values = (List<Map>) page.get("values");
+        collectFileAndDirectories(parent, path, values, files);
+        while (!(boolean)page.get("isLastPage")){
+            response = getRequest(String.format(url+"&start=%s&limit=%s", start, 500));
+            content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
+            page = (Map) content.get("children");
+        }
+        return files;
+    }
+
+    private void collectFileAndDirectories(BitbucketSCMFile parent, String path, List<Map> values, List<SCMFile> files) {
+        for(Map file:values) {
+            String type = (String) file.get("type");
+            List<String> components = (List<String>) ((Map)file.get("path")).get("components");
+            SCMFile.Type fileType = null;
+            if(type.equals("FILE")){
+                fileType = SCMFile.Type.REGULAR_FILE;
+            } else if(type.equals("DIRECTORY")){
+                fileType = SCMFile.Type.DIRECTORY;
+            }
+            if(components.size() > 0 && fileType != null){
+                files.add(new BitbucketSCMFile(parent, components.get(0), fileType));
+            }
+        }
     }
 
     @Override
     public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
-        throw new IOException("Getting File Content not supported for BitBucket Server");
+        List<String> lines = new ArrayList<>();
+        String path = file.getPath();
+        String ref = Util.rawEncode(file.getRef());
+        int start=0;
+        String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
+        String response = getRequest(String.format(url+"&start=%s&limit=%s", start, 500));
+        Map<String,Object> content = collectLines(response, lines);
+
+        while(!(boolean)content.get("isLastPage")){
+            start += (int) content.get("size");
+            response = getRequest(String.format(url+"&start=%s&limit=&s", start, 500));
+            content = collectLines(response, lines);
+        }
+        return IOUtils.toInputStream(Joiner.on('\n').join(lines), "UTF-8");
     }
 
+    private Map<String,Object> collectLines(String response, final List<String> lines) throws IOException {
+        Map<String,Object> content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
+        List<Map<String, String>> lineMap = (List<Map<String, String>>) content.get("lines");
+        lines.addAll(Lists.transform(lineMap, new Function<Map<String,String>, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable Map<String, String> input) {
+                if(input != null){
+                    String text = input.get("text");
+                    if(text != null){
+                        return text;
+                    }
+                }
+                return null;
+            }
+        }));
+
+        return content;
+    }
 }

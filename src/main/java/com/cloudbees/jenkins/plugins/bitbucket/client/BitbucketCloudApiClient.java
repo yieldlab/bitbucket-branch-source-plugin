@@ -547,6 +547,9 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return status;
     }
 
+    /**
+     * Caller's responsbile to close the InputStream.
+     */
     private InputStream getRequestAsInputStream(String path) throws IOException, InterruptedException {
         GetMethod httpget = new GetMethod(path);
         try {
@@ -565,8 +568,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             throw e;
         } catch (IOException e) {
             throw new IOException("Communication error for url: " + path, e);
-        } finally {
-            httpget.releaseConnection();
         }
     }
 
