@@ -69,8 +69,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
 import net.sf.json.JSONObject;
@@ -141,8 +139,10 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private final String baseURL;
 
-    public BitbucketServerAPIClient(@Nonnull String baseURL, @Nonnull String owner, @Nullable String repositoryName, StandardUsernamePasswordCredentials creds, boolean userCentric) {
-        this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(), Secret.toString(creds.getPassword())) : null;
+    public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
+                                    @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric) {
+        this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(),
+                Secret.toString(creds.getPassword())) : null;
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
@@ -736,9 +736,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         Map<String,Object> content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
         List<Map<String, String>> lineMap = (List<Map<String, String>>) content.get("lines");
         lines.addAll(Lists.transform(lineMap, new Function<Map<String,String>, String>() {
-            @Nullable
+            @CheckForNull
             @Override
-            public String apply(@Nullable Map<String, String> input) {
+            public String apply(@CheckForNull Map<String, String> input) {
                 if(input != null){
                     String text = input.get("text");
                     if(text != null){
