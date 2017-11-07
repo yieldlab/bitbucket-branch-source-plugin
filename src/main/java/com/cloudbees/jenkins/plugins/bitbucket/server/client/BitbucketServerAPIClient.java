@@ -69,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
@@ -120,30 +121,28 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     /**
      * Repository owner.
      */
-    private String owner;
+    private final String owner;
 
     /**
      * The repository that this object is managing.
      */
-    private String repositoryName;
+    private final String repositoryName;
 
     /**
      * Indicates if the client is using user-centric API endpoints or project API otherwise.
      */
-    private boolean userCentric = false;
+    private final boolean userCentric;
 
     /**
      * Credentials to access API services.
      * Almost @NonNull (but null is accepted for anonymous access).
      */
-    private UsernamePasswordCredentials credentials;
+    private final UsernamePasswordCredentials credentials;
 
-    private String baseURL;
+    private final String baseURL;
 
-    public BitbucketServerAPIClient(String baseURL, String owner, String repositoryName, StandardUsernamePasswordCredentials creds, boolean userCentric) {
-        if (creds != null) {
-            this.credentials = new UsernamePasswordCredentials(creds.getUsername(), Secret.toString(creds.getPassword()));
-        }
+    public BitbucketServerAPIClient(@Nonnull String baseURL, @Nonnull String owner, @Nullable String repositoryName, StandardUsernamePasswordCredentials creds, boolean userCentric) {
+        this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(), Secret.toString(creds.getPassword())) : null;
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
