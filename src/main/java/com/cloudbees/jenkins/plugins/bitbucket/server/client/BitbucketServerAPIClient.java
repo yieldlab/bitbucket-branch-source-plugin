@@ -46,7 +46,6 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.Bitbucke
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerWebhooks;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.google.common.base.Joiner;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -86,6 +85,7 @@ import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.type.TypeReference;
+import static org.apache.commons.httpclient.util.URIUtil.encodePath;
 
 /**
  * Bitbucket API client.
@@ -715,7 +715,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
         List<String> lines = new ArrayList<>();
-        String path = file.getPath();
+        String path = encodePath(file.getPath());
         String ref = Util.rawEncode(file.getRef());
         int start=0;
         String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
@@ -727,7 +727,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             response = getRequest(String.format(url+"&start=%s&limit=&s", start, 500));
             content = collectLines(response, lines);
         }
-        return IOUtils.toInputStream(Joiner.on('\n').join(lines), "UTF-8");
+        return IOUtils.toInputStream(StringUtils.join(lines,'\n'), "UTF-8");
     }
 
     private Map<String,Object> collectLines(String response, final List<String> lines) throws IOException {

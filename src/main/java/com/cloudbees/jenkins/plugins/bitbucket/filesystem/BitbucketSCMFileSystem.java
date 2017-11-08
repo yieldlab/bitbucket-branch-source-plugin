@@ -99,21 +99,21 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         
         private static StandardUsernamePasswordCredentials lookupScanCredentials(@CheckForNull Item context,
                 @CheckForNull String scanCredentialsId) {
-			if (Util.fixEmpty(scanCredentialsId) == null) {
-				return null;
-			} else {
-				return CredentialsMatchers.firstOrNull(
-						CredentialsProvider.lookupCredentials(
-								StandardUsernamePasswordCredentials.class,
-								context,
-								context instanceof Queue.Task
-								? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
-										: ACL.SYSTEM
-								),
-								CredentialsMatchers.withId(scanCredentialsId)
-						);
-			}
-		}
+            if (Util.fixEmpty(scanCredentialsId) == null) {
+                return null;
+            } else {
+                return CredentialsMatchers.firstOrNull(
+                        CredentialsProvider.lookupCredentials(
+                                StandardUsernamePasswordCredentials.class,
+                                context,
+                                context instanceof Queue.Task
+                                        ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                                        : ACL.SYSTEM
+                        ),
+                        CredentialsMatchers.withId(scanCredentialsId)
+                );
+            }
+        }
 
         @Override
         public SCMFileSystem build(@NonNull SCMSource source, @NonNull SCMHead head, @CheckForNull SCMRevision rev)
@@ -128,7 +128,6 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             credentials = lookupScanCredentials(src.getOwner(), credentialsId);
             
             BitbucketApi apiClient = BitbucketApiFactory.newInstance(serverUrl, credentials, owner, repository);
-           		
             String ref;
             if (head instanceof BranchSCMHead) {
                 ref = head.getName();
