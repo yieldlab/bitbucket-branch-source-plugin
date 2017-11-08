@@ -61,6 +61,11 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         this.api = api;
     }
 
+    /**
+     *
+     * @return Return timestamp of last commit or of tag if its annotated tag
+     * @throws IOException
+     */
     @Override
     public long lastModified() throws IOException {
         // TODO figure out how to implement this
@@ -78,6 +83,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
 
         @Override
         public boolean supports(SCM source) {
+            //TODO: Determine supported by checking if its git/hg bitbucket scm with proper credentials and non wildcard branch
             return false;
         }
 
@@ -131,10 +137,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                 if (!(pr.getCheckoutStrategy() == ChangeRequestCheckoutStrategy.MERGE) && pr.getRepository() != null) {
                     return new BitbucketSCMFileSystem(apiClient, pr.getOriginName(), rev);
                 }
-                // we need to release here as we are not throwing an exception or transferring responsibility to FS
                 return null; // TODO support merge revisions somehow
             } else {
-                // we need to release here as we are not throwing an exception or transferring responsibility to FS
                 return null;
             }
 

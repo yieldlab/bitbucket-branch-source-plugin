@@ -84,7 +84,7 @@ public class BitbucketSCMFile  extends SCMFile {
 
 	@Override
 	public long lastModified() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
+		// TODO: Return valid value when Tag support is implemented
 		return 0;
 	}
 
