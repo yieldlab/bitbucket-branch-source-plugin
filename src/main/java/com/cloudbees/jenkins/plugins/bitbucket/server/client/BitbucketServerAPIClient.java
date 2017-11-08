@@ -85,7 +85,7 @@ import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.type.TypeReference;
-import static org.apache.commons.httpclient.util.URIUtil.encodePath;
+import static com.cloudbees.jenkins.plugins.bitbucket.Utils.encodePath;
 
 /**
  * Bitbucket API client.
@@ -741,4 +741,5 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         }
         return content;
     }
+
 }
