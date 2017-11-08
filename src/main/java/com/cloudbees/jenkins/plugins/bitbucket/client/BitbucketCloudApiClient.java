@@ -45,8 +45,10 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudR
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketRepositoryHook;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketRepositoryHooks;
+import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketRepositorySource;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.PaginatedBitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
+import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -66,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMFile;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpStatus;
@@ -81,6 +84,7 @@ import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.type.TypeReference;
+import static com.cloudbees.jenkins.plugins.bitbucket.Utils.encodePath;
 
 public class BitbucketCloudApiClient implements BitbucketApi {
     private static final Logger LOGGER = Logger.getLogger(BitbucketCloudApiClient.class.getName());
@@ -541,26 +545,33 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return status;
     }
 
-    private String getRequest(String path) throws IOException, InterruptedException {
+    /**
+     * Caller's responsbile to close the InputStream.
+     */
+    private InputStream getRequestAsInputStream(String path) throws IOException, InterruptedException {
         GetMethod httpget = new GetMethod(path);
         try {
             executeMethod(httpget);
-            String response = getResponseContent(httpget, httpget.getResponseContentLength());
             if (httpget.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
                 throw new FileNotFoundException("URL: " + path);
             }
+            InputStream response =  httpget.getResponseBodyAsStream();
             if (httpget.getStatusCode() != HttpStatus.SC_OK) {
                 throw new BitbucketRequestException(httpget.getStatusCode(),
                         "HTTP request error. Status: " + httpget.getStatusCode() + ": " + httpget.getStatusText()
-                                + ".\n" + response);
+                                + ".\n" + IOUtils.toString(response));
             }
             return response;
         } catch (BitbucketRequestException | FileNotFoundException e) {
             throw e;
         } catch (IOException e) {
             throw new IOException("Communication error for url: " + path, e);
-        } finally {
-            httpget.releaseConnection();
+        }
+    }
+
+    private String getRequest(String path) throws IOException, InterruptedException {
+        try (InputStream inputStream = getRequestAsInputStream(path)){
+            return IOUtils.toString(inputStream, "UTF-8");
         }
     }
 
@@ -663,5 +674,46 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             branches.addAll(page.getValues());
         }
         return branches;
+    }
+
+    public Iterable<SCMFile> getDirectoryContent(final BitbucketSCMFile parent) throws IOException, InterruptedException {
+        StringBuilder url = new StringBuilder(V2_API_BASE_URL);
+        url.append(owner);
+        url.append('/');
+        url.append(repositoryName);
+        url.append("/src/");
+        url.append(Util.rawEncode(parent.getRef()));
+        url.append('/');
+
+        url.append(encodePath(parent.getPath()));
+        List<SCMFile> result = new ArrayList<>();
+        String response = getRequest(url.toString());
+        BitbucketCloudPage<BitbucketRepositorySource> page = JsonParser.mapper.readValue(response,
+                new TypeReference<BitbucketCloudPage<BitbucketRepositorySource>>(){});
+
+        for(BitbucketRepositorySource source:page.getValues()){
+            result.add(source.toBitbucketScmFile(parent));
+        }
+
+        while (!page.isLastPage()){
+            response = getRequest(page.getNext());
+            page = JsonParser.mapper.readValue(response,
+                    new TypeReference<BitbucketCloudPage<Map>>(){});
+            for(BitbucketRepositorySource source:page.getValues()){
+                result.add(source.toBitbucketScmFile(parent));
+            }
+        }
+        return result;
+    }
+
+    public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
+        String url = V2_API_BASE_URL + owner +
+                '/' +
+                repositoryName +
+                "/src/" +
+                Util.rawEncode(file.getRef()) +
+                '/' +
+                encodePath(file.getPath());
+        return getRequestAsInputStream(url);
     }
 }

@@ -35,6 +35,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
+import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranches;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerCommit;
@@ -62,9 +63,11 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMFile;
 import net.sf.json.JSONObject;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
@@ -81,6 +84,8 @@ import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.type.TypeReference;
+import static com.cloudbees.jenkins.plugins.bitbucket.Utils.encodePath;
 
 /**
  * Bitbucket API client.
@@ -112,34 +117,34 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     /**
      * Repository owner.
      */
-    private String owner;
+    private final String owner;
 
     /**
      * The repository that this object is managing.
      */
-    private String repositoryName;
+    private final String repositoryName;
 
     /**
      * Indicates if the client is using user-centric API endpoints or project API otherwise.
      */
-    private boolean userCentric = false;
+    private final boolean userCentric;
 
     /**
      * Credentials to access API services.
      * Almost @NonNull (but null is accepted for anonymous access).
      */
-    private UsernamePasswordCredentials credentials;
+    private final UsernamePasswordCredentials credentials;
 
-    private String baseURL;
+    private final String baseURL;
 
-    public BitbucketServerAPIClient(String baseURL, String owner, String repositoryName, StandardUsernamePasswordCredentials creds, boolean userCentric) {
-        if (creds != null) {
-            this.credentials = new UsernamePasswordCredentials(creds.getUsername(), Secret.toString(creds.getPassword()));
-        }
+    public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
+                                    @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric) {
+        this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(),
+                Secret.toString(creds.getPassword())) : null;
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
-        this.baseURL = baseURL;
+        this.baseURL = Util.removeTrailingSlash(baseURL);
     }
 
     /**
@@ -669,6 +674,72 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private String deleteRequest(String path) throws IOException {
         DeleteMethod request = new DeleteMethod(this.baseURL + path);
         return doRequest(request);
+    }
+
+    @Override
+    public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException {
+        List<SCMFile> files = new ArrayList<>();
+        String path = parent.getPath();
+        String ref = Util.rawEncode(parent.getRef());
+        int start=0;
+        String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
+        String response = getRequest(String.format(url+"&start=%s&limit=%s", start, 500));
+        Map<String,Object> content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
+        Map page = (Map) content.get("children");
+        List<Map> values = (List<Map>) page.get("values");
+        collectFileAndDirectories(parent, path, values, files);
+        while (!(boolean)page.get("isLastPage")){
+            response = getRequest(String.format(url+"&start=%s&limit=%s", start, 500));
+            content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
+            page = (Map) content.get("children");
+        }
+        return files;
+    }
+
+    private void collectFileAndDirectories(BitbucketSCMFile parent, String path, List<Map> values, List<SCMFile> files) {
+        for(Map file:values) {
+            String type = (String) file.get("type");
+            List<String> components = (List<String>) ((Map)file.get("path")).get("components");
+            SCMFile.Type fileType = null;
+            if(type.equals("FILE")){
+                fileType = SCMFile.Type.REGULAR_FILE;
+            } else if(type.equals("DIRECTORY")){
+                fileType = SCMFile.Type.DIRECTORY;
+            }
+            if(components.size() > 0 && fileType != null){
+                files.add(new BitbucketSCMFile(parent, components.get(0), fileType));
+            }
+        }
+    }
+
+    @Override
+    public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
+        List<String> lines = new ArrayList<>();
+        String path = encodePath(file.getPath());
+        String ref = Util.rawEncode(file.getRef());
+        int start=0;
+        String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
+        String response = getRequest(String.format(url+"&start=%s&limit=%s", start, 500));
+        Map<String,Object> content = collectLines(response, lines);
+
+        while(!(boolean)content.get("isLastPage")){
+            start += (int) content.get("size");
+            response = getRequest(String.format(url+"&start=%s&limit=&s", start, 500));
+            content = collectLines(response, lines);
+        }
+        return IOUtils.toInputStream(StringUtils.join(lines,'\n'), "UTF-8");
+    }
+
+    private Map<String,Object> collectLines(String response, final List<String> lines) throws IOException {
+        Map<String,Object> content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
+        List<Map<String, String>> lineMap = (List<Map<String, String>>) content.get("lines");
+        for(Map<String,String> line: lineMap){
+            String text = line.get("text");
+            if(text != null){
+                lines.add(text);
+            }
+        }
+        return content;
     }
 
 }
