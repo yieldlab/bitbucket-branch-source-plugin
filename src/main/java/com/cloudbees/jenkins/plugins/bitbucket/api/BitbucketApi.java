@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import jenkins.scm.api.SCMFile;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Provides access to a specific repository.
@@ -249,6 +251,7 @@ public interface BitbucketApi {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@Restricted(NoExternalUse.class)
 	public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException;
 	
 	/**
@@ -257,5 +260,6 @@ public interface BitbucketApi {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+    @Restricted(NoExternalUse.class)
 	public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException;
 }
