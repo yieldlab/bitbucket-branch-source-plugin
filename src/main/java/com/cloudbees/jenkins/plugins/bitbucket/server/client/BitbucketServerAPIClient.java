@@ -46,9 +46,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.Bitbucke
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerWebhooks;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -735,20 +733,12 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private Map<String,Object> collectLines(String response, final List<String> lines) throws IOException {
         Map<String,Object> content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
         List<Map<String, String>> lineMap = (List<Map<String, String>>) content.get("lines");
-        lines.addAll(Lists.transform(lineMap, new Function<Map<String,String>, String>() {
-            @CheckForNull
-            @Override
-            public String apply(@CheckForNull Map<String, String> input) {
-                if(input != null){
-                    String text = input.get("text");
-                    if(text != null){
-                        return text;
-                    }
-                }
-                return null;
+        for(Map<String,String> line: lineMap){
+            String text = line.get("text");
+            if(text != null){
+                lines.add(text);
             }
-        }));
-
+        }
         return content;
     }
 }

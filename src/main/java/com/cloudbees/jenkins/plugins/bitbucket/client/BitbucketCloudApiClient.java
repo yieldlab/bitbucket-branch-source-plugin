@@ -50,8 +50,6 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.repository.PaginatedBitbuc
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -69,7 +67,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
 import org.apache.commons.httpclient.HttpClient;
@@ -696,22 +693,17 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         BitbucketCloudPage<BitbucketRepositorySource> page = JsonParser.mapper.readValue(response,
                 new TypeReference<BitbucketCloudPage<BitbucketRepositorySource>>(){});
 
-        Function<BitbucketRepositorySource, SCMFile> function = new Function<BitbucketRepositorySource, SCMFile>() {
-            @Override
-            public SCMFile apply(@Nullable BitbucketRepositorySource input) {
-                if(input != null){
-                    return input.toBitbucketScmFile(parent);
-                }
-                return null;
-            }
-        };
-        result.addAll(Lists.transform(page.getValues(), function));
+        for(BitbucketRepositorySource source:page.getValues()){
+            result.add(source.toBitbucketScmFile(parent));
+        }
+
         while (!page.isLastPage()){
             response = getRequest(page.getNext());
             page = JsonParser.mapper.readValue(response,
                     new TypeReference<BitbucketCloudPage<Map>>(){});
-            result.addAll(Lists.transform(page.getValues(), function));
-
+            for(BitbucketRepositorySource source:page.getValues()){
+                result.add(source.toBitbucketScmFile(parent));
+            }
         }
         return result;
     }
