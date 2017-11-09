@@ -155,12 +155,12 @@ public class WebhookAutoRegisterListener extends ItemListener {
                         .withTraits(source.getTraits())
                         .webhookConfiguration();
                     if(existing == null) {
-                        LOGGER.info(String.format("Registering hook for %s/%s", source.getRepoOwner(),
-                                source.getRepository()));
+                        LOGGER.log(Level.INFO, "Registering hook for {0}/{1}",
+                                new Object[]{source.getRepoOwner(), source.getRepository()});
                         bitbucket.registerCommitWebHook(hookConfig.getHook(source));
                     } else if(hookConfig.hasChanges(existing)) {
-                        LOGGER.info(String.format("Updating hook for %s/%s", source.getRepoOwner(),
-                                    source.getRepository()));
+                        LOGGER.log(Level.INFO, "Updating hook for {0}/{1}",
+                                new Object[]{source.getRepoOwner(), source.getRepository()});
                         bitbucket.updateCommitWebHook(hookConfig.mergeConfiguration(existing));
                     }
                 }
@@ -184,7 +184,7 @@ public class WebhookAutoRegisterListener extends ItemListener {
                     case ITEM:
                         break;
                 }
-                LOGGER.warning(String.format("Can not register hook. Jenkins root URL is not valid: %s", rootUrl));
+                LOGGER.log(Level.WARNING, "Can not register hook. Jenkins root URL is not valid: {0}", rootUrl);
                 return;
             }
         }
@@ -205,11 +205,12 @@ public class WebhookAutoRegisterListener extends ItemListener {
                     }
                 }
                 if (hook != null && !isUsedSomewhereElse(owner, source.getRepoOwner(), source.getRepository())) {
-                    LOGGER.info(String.format("Removing hook for %s/%s", source.getRepoOwner(), source.getRepository()));
+                    LOGGER.log(Level.INFO, "Removing hook for {0}/{1}",
+                            new Object[]{source.getRepoOwner(), source.getRepository()});
                     bitbucket.removeCommitWebHook(hook);
                 } else {
-                    LOGGER.log(Level.FINE, String.format("NOT removing hook for %s/%s because does not exists or its used in other project",
-                            source.getRepoOwner(), source.getRepository()));
+                    LOGGER.log(Level.FINE, "NOT removing hook for {0}/{1} because does not exists or its used in other project",
+                            new Object[]{source.getRepoOwner(), source.getRepository()});
                 }
             }
         }
