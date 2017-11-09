@@ -347,7 +347,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             String response = getRequest(url);
             return JsonParser.toJava(response, BitbucketServerBranch.class).getName();
         } catch (FileNotFoundException e) {
-            LOGGER.fine(String.format("Could not find default branch for %s/%s", this.owner, this.repositoryName));
+            LOGGER.log(Level.FINE, "Could not find default branch for {0}/{1}",
+                    new Object[]{this.owner, this.repositoryName});
             return null;
         } catch (IOException e) {
             throw new IOException("I/O error when accessing URL: " + url, e);

@@ -66,6 +66,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
@@ -302,7 +303,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         try {
             response = getRequest(url);
         } catch (FileNotFoundException e) {
-            LOGGER.fine(String.format("Could not find default branch for %s/%s", this.owner, this.repositoryName));
+            LOGGER.log(Level.FINE, "Could not find default branch for {0}/{1}",
+                    new Object[]{this.owner, this.repositoryName});
             return null;
         }
         Map resp = JsonParser.toJava(response, Map.class);
