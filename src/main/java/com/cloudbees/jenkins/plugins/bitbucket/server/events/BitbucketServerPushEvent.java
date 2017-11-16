@@ -31,6 +31,12 @@ import java.util.Collections;
 import java.util.List;
 import org.codehaus.jackson.annotate.JsonProperty;
 
+/**
+ * 
+ * @see <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Push">Event Payload Push</a>
+ * 
+ * TODO: the changes are reported differently than in https://github.com/Eernie/bitbucket-webhooks-plugin/wiki
+ */
 public class BitbucketServerPushEvent implements BitbucketPushEvent{
 
     private BitbucketServerRepository repository;
@@ -38,6 +44,7 @@ public class BitbucketServerPushEvent implements BitbucketPushEvent{
     @JsonProperty
     private Push push;
 
+    @Override
     public BitbucketRepository getRepository() {
         return repository;
     }

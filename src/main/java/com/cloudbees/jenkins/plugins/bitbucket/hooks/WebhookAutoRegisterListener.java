@@ -65,11 +65,17 @@ public class WebhookAutoRegisterListener extends ItemListener {
 
     private static final Logger LOGGER = Logger.getLogger(WebhookAutoRegisterListener.class.getName());
     private static final List<String> CLOUD_EVENTS = Collections.unmodifiableList(Arrays.asList(
-            HookEventType.PUSH.getKey(),
-            HookEventType.PULL_REQUEST_CREATED.getKey(),
-            HookEventType.PULL_REQUEST_UPDATED.getKey(),
-            HookEventType.PULL_REQUEST_MERGED.getKey(),
-            HookEventType.PULL_REQUEST_DECLINED.getKey()
+            HookEventType.CLOUD_PUSH.getKey(),
+            HookEventType.CLOUD_PULL_REQUEST_CREATED.getKey(),
+            HookEventType.CLOUD_PULL_REQUEST_UPDATED.getKey(),
+            HookEventType.CLOUD_PULL_REQUEST_MERGED.getKey(),
+            HookEventType.CLOUD_PULL_REQUEST_DECLINED.getKey()
+    ));
+    private static final List<String> SERVER_EVENTS = Collections.unmodifiableList(Arrays.asList(
+            HookEventType.SERVER_PUSH.getKey(),
+            HookEventType.SERVER_PULL_REQUEST_CREATED.getKey(),
+            HookEventType.SERVER_PULL_REQUEST_MERGED.getKey(),
+            HookEventType.SERVER_PULL_REQUEST_DECLINED.getKey()
     ));
 
     private static ExecutorService executorService;
@@ -289,6 +295,7 @@ public class WebhookAutoRegisterListener extends ItemListener {
             hook.setActive(true);
             hook.setDescription("Jenkins hook");
             hook.setUrl(Jenkins.getActiveInstance().getRootUrl() + BitbucketSCMSourcePushHookReceiver.FULL_PATH);
+            hook.setEvents(SERVER_EVENTS);
             return hook;
         }
     }

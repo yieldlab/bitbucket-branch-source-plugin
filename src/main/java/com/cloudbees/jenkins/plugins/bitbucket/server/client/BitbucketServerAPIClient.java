@@ -106,10 +106,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_PROJECT_PATH = API_BASE_PATH + "/projects/%s";
     private static final String API_COMMIT_COMMENT_PATH = API_REPOSITORY_PATH + "/commits/%s/comments";
 
-    private static final String WEBHOOK_BASE_PATH = "/rest/webhook/1.0";
-    private static final String WEBHOOK_REPOSITORY_PATH = WEBHOOK_BASE_PATH + "/projects/%s/repos/%s/configurations";
-    private static final String WEBHOOK_REPOSITORY_CONFIG_PATH = WEBHOOK_REPOSITORY_PATH + "/%s";
-
+    // https://developer.atlassian.com/static/rest/bitbucket-server/5.4.0/bitbucket-rest.html#idm140014934985472
+    private static final String API_WEBHOOK_PATH = API_BASE_PATH + "/projects/%s/repos/%s/webhooks";
+    
     private static final String API_COMMIT_STATUS_PATH = "/rest/build-status/1.0/commits/%s";
 
     private static final int MAX_PAGES = 100;
@@ -410,20 +409,25 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return pull.getSource().getCommit().getHash();
     }
 
+    /**
+     * Since Bitbucket Server 5.4.0 webhooks are <a href="https://confluence.atlassian.com/bitbucketserver054/managing-webhooks-in-bitbucket-server-939508605.html">natively supported</a>.
+     * 
+     * @see <a href="https://developer.atlassian.com/static/rest/bitbucket-server/5.4.0/bitbucket-rest.html#idm140014934985472">Web Hooks API</a>
+     */
     @Override
     public void registerCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        putRequest(String.format(WEBHOOK_REPOSITORY_PATH, getUserCentricOwner(), repositoryName), JsonParser.toJson(hook));
+        putRequest(String.format(API_WEBHOOK_PATH, getUserCentricOwner(), repositoryName), JsonParser.toJson(hook));
     }
 
     @Override
     public void removeCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        deleteRequest(String.format(WEBHOOK_REPOSITORY_CONFIG_PATH, getUserCentricOwner(), repositoryName, hook.getUuid()));
+        deleteRequest(String.format(API_WEBHOOK_PATH+ "/%s", getUserCentricOwner(), repositoryName, hook.getUuid()));
     }
 
     @NonNull
     @Override
     public List<? extends BitbucketWebHook> getWebHooks() throws IOException, InterruptedException {
-        String response = getRequest(String.format(WEBHOOK_REPOSITORY_PATH, getUserCentricOwner(), repositoryName));
+        String response = getRequest(String.format(API_WEBHOOK_PATH, getUserCentricOwner(), repositoryName));
         return JsonParser.toJava(response, BitbucketServerWebhooks.class);
     }
 
