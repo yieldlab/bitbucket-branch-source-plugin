@@ -63,9 +63,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -494,6 +492,12 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 throw new IOException("I/O error when parsing response from URL: " + url, e);
             }
         }
+        Collections.sort(repositories, new Comparator<BitbucketCloudRepository>() {
+            @Override
+            public int compare(BitbucketCloudRepository o1, BitbucketCloudRepository o2) {
+                return o1.getRepositoryName().compareTo(o2.getRepositoryName());
+            }
+        });
         return repositories;
     }
 
