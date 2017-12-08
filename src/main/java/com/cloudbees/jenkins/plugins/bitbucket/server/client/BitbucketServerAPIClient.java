@@ -112,8 +112,6 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private static final String API_COMMIT_STATUS_PATH = "/rest/build-status/1.0/commits/%s";
 
-    private static final int MAX_PAGES = 100;
-
     /**
      * Repository owner.
      */
@@ -248,15 +246,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
         try {
             List<BitbucketServerPullRequest> pullRequests = new ArrayList<>();
-            Integer pageNumber = 1;
             String response = getRequest(url);
             BitbucketServerPullRequests page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
             pullRequests.addAll(page.getValues());
-            while (!page.isLastPage() && pageNumber < MAX_PAGES) {
+            while (!page.isLastPage()) {
                 if (Thread.interrupted()) {
                     throw new InterruptedException();
                 }
-                pageNumber++;
                 url = String.format(API_PULL_REQUESTS_PATH, getUserCentricOwner(), repositoryName,
                         page.getNextPageStart());
                 response = getRequest(url);
@@ -365,15 +361,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
         try {
             List<BitbucketServerBranch> branches = new ArrayList<>();
-            Integer pageNumber = 1;
             String response = getRequest(url);
             BitbucketServerBranches page = JsonParser.toJava(response, BitbucketServerBranches.class);
             branches.addAll(page.getValues());
-            while (!page.isLastPage() && pageNumber < MAX_PAGES) {
+            while (!page.isLastPage()) {
                 if (Thread.interrupted()) {
                     throw new InterruptedException();
                 }
-                pageNumber++;
                 url = String.format(API_BRANCHES_PATH, getUserCentricOwner(), repositoryName, page.getNextPageStart());
                 response = getRequest(url);
                 page = JsonParser.toJava(response, BitbucketServerBranches.class);
@@ -458,15 +452,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
         try {
             List<BitbucketServerRepository> repositories = new ArrayList<>();
-            Integer pageNumber = 1;
             String response = getRequest(url);
             BitbucketServerRepositories page = JsonParser.toJava(response, BitbucketServerRepositories.class);
             repositories.addAll(page.getValues());
-            while (!page.isLastPage() && pageNumber < MAX_PAGES) {
+            while (!page.isLastPage()) {
                 if (Thread.interrupted()) {
                     throw new InterruptedException();
                 }
-                pageNumber++;
                 url = String.format(API_REPOSITORIES_PATH, getUserCentricOwner(), page.getNextPageStart());
                 response = getRequest(url);
                 page = JsonParser.toJava(response, BitbucketServerRepositories.class);
