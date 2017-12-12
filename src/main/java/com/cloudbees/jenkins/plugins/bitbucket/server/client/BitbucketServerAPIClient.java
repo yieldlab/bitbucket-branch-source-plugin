@@ -682,6 +682,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         List<Map> values = (List<Map>) page.get("values");
         collectFileAndDirectories(parent, path, values, files);
         while (!(boolean)page.get("isLastPage")){
+            start += (int) content.get("size");
             response = getRequest(url + String.format("&start=%s&limit=%s", start, 500));
             content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
             page = (Map) content.get("children");
