@@ -81,6 +81,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -90,9 +91,12 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -146,6 +150,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
      * Almost @NonNull (but null is accepted for anonymous access).
      */
     private final UsernamePasswordCredentials credentials;
+
+    private HttpClientContext context;
 
     private final String baseURL;
 
@@ -600,7 +606,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private String getRequest(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget)); CloseableHttpResponse response = client.execute(httpget)) {
+        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget));
+                CloseableHttpResponse response = client.execute(httpget, context)) {
             String content;
             long len = response.getEntity().getContentLength();
             if (len == 0) {
@@ -642,7 +649,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         if (credentials != null) {
             CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
             credentialsProvider.setCredentials(AuthScope.ANY, credentials);
-            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            AuthCache authCache = new BasicAuthCache();
+            authCache.put(HttpHost.create(host), new BasicScheme());
+            context = HttpClientContext.create();
+            context.setCredentialsProvider(credentialsProvider);
+            context.setAuthCache(authCache);
         }
 
         setClientProxyParams(host, httpClientBuilder);
@@ -650,7 +661,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return httpClientBuilder.build();
     }
 
-    private static void setClientProxyParams(String host, HttpClientBuilder builder) {
+    private void setClientProxyParams(String host, HttpClientBuilder builder) {
         Jenkins jenkins = Jenkins.getInstance();
         ProxyConfiguration proxyConfig = null;
         if (jenkins != null) {
@@ -669,10 +680,14 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             String username = proxyConfig.getUserName();
             String password = proxyConfig.getPassword();
             if (username != null && !"".equals(username.trim())) {
-                LOGGER.log(Level.FINE, "Using proxy authentication (user={0})", username);
+                LOGGER.fine("Using proxy authentication (user=" + username + ")");
                 CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                builder.setDefaultCredentialsProvider(credentialsProvider);
+                AuthCache authCache = new BasicAuthCache();
+                authCache.put(HttpHost.create(proxyAddress.getHostName()), new BasicScheme());
+                context = HttpClientContext.create();
+                context.setCredentialsProvider(credentialsProvider);
+                context.setAuthCache(authCache);
             }
         }
     }
@@ -680,7 +695,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private int getRequestStatus(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget)); CloseableHttpResponse response = client.execute(httpget)) {
+        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget));
+                CloseableHttpResponse response = client.execute(httpget, context)) {
             EntityUtils.consume(response.getEntity());
             return response.getStatusLine().getStatusCode();
         } finally {
@@ -723,7 +739,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         requestConfig.setSocketTimeout(60 * 1000);
         request.setConfig(requestConfig.build());
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(request)); CloseableHttpResponse response = client.execute(request)) {
+        try(CloseableHttpClient client = getHttpClient(getMethodHost(request));
+                CloseableHttpResponse response = client.execute(request, context)) {
             if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
                 EntityUtils.consume(response.getEntity());
                 // 204, no content

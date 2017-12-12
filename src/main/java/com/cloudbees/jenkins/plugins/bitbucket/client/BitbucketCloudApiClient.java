@@ -633,7 +633,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return getRepositories(null);
     }
 
-    private static void setClientProxyParams(String host, HttpClientBuilder builder) {
+    private void setClientProxyParams(String host, HttpClientBuilder builder) {
         Jenkins jenkins = Jenkins.getInstance();
         ProxyConfiguration proxyConfig = null;
         if (jenkins != null) {
@@ -655,7 +655,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 LOGGER.fine("Using proxy authentication (user=" + username + ")");
                 CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                builder.setDefaultCredentialsProvider(credentialsProvider);
+                AuthCache authCache = new BasicAuthCache();
+                authCache.put(HttpHost.create(proxyAddress.getHostName()), new BasicScheme());
+                context = HttpClientContext.create();
+                context.setCredentialsProvider(credentialsProvider);
+                context.setAuthCache(authCache);
             }
         }
     }
