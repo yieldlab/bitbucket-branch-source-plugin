@@ -45,7 +45,7 @@ public class Utils {
     public static @NonNull String encodePath(@NonNull String path){
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (String segment : StringUtils.split(path, "/")) {
+        for (String segment : path.split("/")) {
             sb.append(Util.rawEncode(segment));
             if (first) {
                 first = false;
