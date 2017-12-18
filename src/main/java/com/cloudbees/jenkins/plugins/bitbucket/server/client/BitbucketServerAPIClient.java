@@ -412,6 +412,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     @Override
+    public void updateCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
+        postRequest(String.format(WEBHOOK_REPOSITORY_CONFIG_PATH, getUserCentricOwner(), repositoryName, hook.getUuid()), JsonParser.toJson(hook));
+    }
+
+    @Override
     public void removeCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
         deleteRequest(String.format(WEBHOOK_REPOSITORY_CONFIG_PATH, getUserCentricOwner(), repositoryName, hook.getUuid()));
     }
