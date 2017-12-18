@@ -46,12 +46,12 @@ public class Utils {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
         for (String segment : path.split("/")) {
-            sb.append(Util.rawEncode(segment));
             if (first) {
                 first = false;
             } else {
                 sb.append('/');
             }
+            sb.append(Util.rawEncode(segment));
         }
         return sb.toString();
     }
