@@ -325,18 +325,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
      */
     @Override
     public boolean checkPathExists(@NonNull String branchOrHash, @NonNull String path) throws IOException {
-        StringBuilder encodedPath = new StringBuilder(path.length() + 10);
-        boolean first = true;
-        for (String segment : StringUtils.split(path, "/")) {
-            if (first) {
-                first = false;
-            } else {
-                encodedPath.append('/');
-            }
-            encodedPath.append(Util.rawEncode(segment));
-        }
-        int status = getRequestStatus(String.format(API_BROWSE_PATH, getUserCentricOwner(), repositoryName, encodedPath,
-                URLEncoder.encode(branchOrHash, "UTF-8")));
+        int status = getRequestStatus(String.format(API_BROWSE_PATH, getUserCentricOwner(), repositoryName,
+                encodePath(path), URLEncoder.encode(branchOrHash, "UTF-8")));
         return HttpStatus.SC_OK == status;
     }
 
@@ -694,17 +684,17 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     @Override
-    public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException {
+    public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile directory) throws IOException, InterruptedException {
         List<SCMFile> files = new ArrayList<>();
-        String path = encodePath(parent.getPath());
-        String ref = Util.rawEncode(parent.getRef());
+        String path = encodePath(directory.getPath());
+        String ref = URLEncoder.encode(directory.getRef(), "UTF-8");
         int start=0;
-        String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
+        String url = String.format(API_BROWSE_PATH, getUserCentricOwner(), repositoryName, path, ref);
         String response = getRequest(url + String.format("&start=%s&limit=%s", start, 500));
         Map<String,Object> content = JsonParser.mapper.readValue(response, new TypeReference<Map<String,Object>>(){});
         Map page = (Map) content.get("children");
         List<Map> values = (List<Map>) page.get("values");
-        collectFileAndDirectories(parent, path, values, files);
+        collectFileAndDirectories(directory, values, files);
         while (!(boolean)page.get("isLastPage")){
             start += (int) content.get("size");
             response = getRequest(url + String.format("&start=%s&limit=%s", start, 500));
@@ -714,7 +704,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return files;
     }
 
-    private void collectFileAndDirectories(BitbucketSCMFile parent, String path, List<Map> values, List<SCMFile> files) {
+    private void collectFileAndDirectories(BitbucketSCMFile parent, List<Map> values, List<SCMFile> files) {
         for(Map file:values) {
             String type = (String) file.get("type");
             List<String> components = (List<String>) ((Map)file.get("path")).get("components");
@@ -734,9 +724,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
         List<String> lines = new ArrayList<>();
         String path = encodePath(file.getPath());
-        String ref = Util.rawEncode(file.getRef());
+        String ref = URLEncoder.encode(file.getRef(), "UTF-8");
         int start=0;
-        String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
+        String url = String.format(API_BROWSE_PATH, getUserCentricOwner(), repositoryName, path, ref);
         String response = getRequest(url + String.format("&start=%s&limit=%s", start, 500));
         Map<String,Object> content = collectLines(response, lines);
 
