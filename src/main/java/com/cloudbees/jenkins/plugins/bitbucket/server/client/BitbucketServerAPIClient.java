@@ -64,6 +64,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -373,11 +374,17 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 page = JsonParser.toJava(response, BitbucketServerBranches.class);
                 branches.addAll(page.getValues());
             }
-            for (BitbucketServerBranch branch: branches) {
-                BitbucketCommit commit = resolveCommit(branch.getRawNode());
-                if (commit != null) {
-                    branch.setTimestamp(commit.getDateMillis());
-                }
+            for (final BitbucketServerBranch branch: branches) {
+                branch.setTimestampClosure(new Callable<Long>() {
+                    @Override
+                    public Long call() throws Exception {
+                        BitbucketCommit commit = resolveCommit(branch.getRawNode());
+                        if (commit != null) {
+                            return commit.getDateMillis();
+                        }
+                        return 0L;
+                    }
+                });
             }
             return branches;
         } catch (IOException e) {
