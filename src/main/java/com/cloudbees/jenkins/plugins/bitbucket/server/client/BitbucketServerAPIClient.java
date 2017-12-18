@@ -680,7 +680,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException {
         List<SCMFile> files = new ArrayList<>();
-        String path = parent.getPath();
+        String path = encodePath(parent.getPath());
         String ref = Util.rawEncode(parent.getRef());
         int start=0;
         String url = String.format(API_REPOSITORY_PATH+"/browse/%s?at=%s", owner, repositoryName, path, ref);
