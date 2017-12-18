@@ -62,6 +62,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -464,6 +466,12 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 page = JsonParser.toJava(response, BitbucketServerRepositories.class);
                 repositories.addAll(page.getValues());
             }
+            Collections.sort(repositories, new Comparator<BitbucketServerRepository>() {
+                @Override
+                public int compare(BitbucketServerRepository o1, BitbucketServerRepository o2) {
+                    return o1.getRepositoryName().compareTo(o2.getRepositoryName());
+                }
+            });
             return repositories;
         } catch (FileNotFoundException e) {
             return new ArrayList<>();
