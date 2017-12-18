@@ -62,6 +62,7 @@ public class BitbucketBuildStatusNotifications {
             listener.getLogger().println(
                     "Can not determine Jenkins root URL. Commit status notifications are disabled until a root URL is"
                             + " configured in Jenkins global configuration.");
+            return;
         }
         String url;
         try {
