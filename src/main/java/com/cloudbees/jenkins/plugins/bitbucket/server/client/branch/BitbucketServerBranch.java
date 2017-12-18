@@ -101,6 +101,7 @@ public class BitbucketServerBranch implements BitbucketBranch {
                     timestamp = timestampClosure.call();
                 } catch (Exception e) {
                     LOGGER.log(Level.FINER, "Could not determine timestamp", e);
+                    timestamp = 0L;
                 }
             }
         }

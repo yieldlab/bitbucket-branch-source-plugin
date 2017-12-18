@@ -112,6 +112,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String WEBHOOK_REPOSITORY_CONFIG_PATH = WEBHOOK_REPOSITORY_PATH + "/%s";
 
     private static final String API_COMMIT_STATUS_PATH = "/rest/build-status/1.0/commits/%s";
+    private static final Integer DEFAULT_PAGE_LIMIT = 200;
 
     /**
      * Repository owner.
@@ -243,7 +244,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @NonNull
     @Override
     public List<BitbucketServerPullRequest> getPullRequests() throws IOException, InterruptedException {
-        String url = String.format(API_PULL_REQUESTS_PATH, getUserCentricOwner(), repositoryName, 0, 200);
+        String url = String.format(API_PULL_REQUESTS_PATH, getUserCentricOwner(), repositoryName, 0, DEFAULT_PAGE_LIMIT);
 
         try {
             List<BitbucketServerPullRequest> pullRequests = new ArrayList<>();
@@ -256,7 +257,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 }
                 Integer limit = page.getLimit();
                 url = String.format(API_PULL_REQUESTS_PATH, getUserCentricOwner(), repositoryName,
-                        page.getNextPageStart(), limit == null ? 200 : limit);
+                        page.getNextPageStart(), limit == null ? DEFAULT_PAGE_LIMIT : limit);
                 response = getRequest(url);
                 page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
                 pullRequests.addAll(page.getValues());
@@ -359,7 +360,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     @NonNull
     public List<BitbucketServerBranch> getBranches() throws IOException, InterruptedException {
-        String url = String.format(API_BRANCHES_PATH, getUserCentricOwner(), repositoryName, 0, 200);
+        String url = String.format(API_BRANCHES_PATH, getUserCentricOwner(), repositoryName, 0, DEFAULT_PAGE_LIMIT);
 
         try {
             List<BitbucketServerBranch> branches = new ArrayList<>();
@@ -372,7 +373,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 }
                 Integer limit = page.getLimit();
                 url = String.format(API_BRANCHES_PATH, getUserCentricOwner(), repositoryName, page.getNextPageStart(),
-                        limit == null ? 200 : limit);
+                        limit == null ? DEFAULT_PAGE_LIMIT : limit);
                 response = getRequest(url);
                 page = JsonParser.toJava(response, BitbucketServerBranches.class);
                 branches.addAll(page.getValues());
