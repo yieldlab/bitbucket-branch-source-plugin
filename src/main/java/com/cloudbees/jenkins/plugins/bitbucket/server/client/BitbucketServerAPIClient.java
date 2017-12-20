@@ -64,7 +64,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -92,7 +91,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
@@ -349,7 +347,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .set("repo", repositoryName)
                 .set("hash", hash)
                 .expand(),
-            Arrays.asList(
+            Collections.singletonList(
                 new BasicNameValuePair("text", comment)
             )
         );

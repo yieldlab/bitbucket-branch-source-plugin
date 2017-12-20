@@ -63,14 +63,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.Proxy;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -89,7 +86,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -101,7 +97,6 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.config.SocketConfig;
-import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
@@ -329,7 +324,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 .set("hash", hash)
                 .expand();
         try {
-            postRequest(path, Arrays.asList(new BasicNameValuePair("content", comment)));
+            postRequest(path, Collections.singletonList(new BasicNameValuePair("content", comment)));
         } catch (UnsupportedEncodingException e) {
             throw e;
         } catch (IOException e) {
@@ -807,7 +802,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
 
     private String putRequest(String path, String content) throws IOException, InterruptedException  {
         HttpPut request = new HttpPut(path);
-        request.setEntity(new StringEntity(content,  ContentType.create("application/json", "UTF-8")));
+        request.setEntity(new StringEntity(content, ContentType.create("application/json", "UTF-8")));
         return doRequest(request);
     }
 
