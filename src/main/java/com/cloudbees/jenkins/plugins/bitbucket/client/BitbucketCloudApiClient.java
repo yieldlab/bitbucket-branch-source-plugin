@@ -50,13 +50,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.repository.PaginatedBitbuc
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-<<<<<<< HEAD
 import com.damnhandy.uri.template.UriTemplate;
-=======
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
->>>>>>> Adding cache to limit BitBucket API rate hits
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -115,8 +109,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         connectionManager.getParams().setDefaultMaxConnectionsPerHost(20);
         connectionManager.getParams().setMaxTotalConnections(22);
     }
-    private static Cache<String, BitbucketTeam> cachedTeam = CacheBuilder.newBuilder().expireAfterWrite(6, TimeUnit.HOURS).build();
-    private static Cache<UriTemplate, List<BitbucketCloudRepository>> cachedRepositories = CacheBuilder.newBuilder().expireAfterWrite(3, TimeUnit.HOURS).build();
+    private static Cache<String, BitbucketTeam> cachedTeam = new Cache(6, TimeUnit.HOURS);
+    private static Cache<UriTemplate, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, TimeUnit.HOURS);
     private BitbucketRepository cachedRepository;
     private String cachedDefaultBranch;
 
