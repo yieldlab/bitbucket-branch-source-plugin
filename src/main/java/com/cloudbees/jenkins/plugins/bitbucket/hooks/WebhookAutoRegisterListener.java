@@ -128,7 +128,7 @@ public class WebhookAutoRegisterListener extends ItemListener {
         });
     }
 
-    // synchronized just to avoid duplicated webhooks in case SCMSourceOwner is updated repeteadly and quickly
+    // synchronized just to avoid duplicated webhooks in case SCMSourceOwner is updated repeatedly and quickly
     private synchronized void registerHooks(SCMSourceOwner owner) throws IOException, InterruptedException {
         String rootUrl = Jenkins.getActiveInstance().getRootUrl();
         List<BitbucketSCMSource> sources = getBitbucketSCMSources(owner);
