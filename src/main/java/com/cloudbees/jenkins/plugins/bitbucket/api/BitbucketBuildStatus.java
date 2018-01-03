@@ -57,7 +57,7 @@ public class BitbucketBuildStatus {
     private String key;
 
     /**
-     * A short name, usuallt #job-name, #build-number (will be shown as link
+     * A short name, usually #job-name, #build-number (will be shown as link
      * text in BB UI)
      */
     private String name;
