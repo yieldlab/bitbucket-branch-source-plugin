@@ -20,7 +20,7 @@ import static org.junit.Assume.assumeThat;
 
 public class OriginPullRequestDiscoveryTraitTest {
     @Test
-    public void given__disoverHeadMerge__when__appliedToContext__then__strategiesCorrect() throws Exception {
+    public void given__discoverHeadMerge__when__appliedToContext__then__strategiesCorrect() throws Exception {
         BitbucketSCMSourceContext ctx = new BitbucketSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.wantBranches(), is(false));
         assumeThat(ctx.wantPRs(), is(false));
@@ -45,7 +45,7 @@ public class OriginPullRequestDiscoveryTraitTest {
     }
 
     @Test
-    public void given__disoverHeadOnly__when__appliedToContext__then__strategiesCorrect() throws Exception {
+    public void given__discoverHeadOnly__when__appliedToContext__then__strategiesCorrect() throws Exception {
         BitbucketSCMSourceContext ctx = new BitbucketSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.wantBranches(), is(false));
         assumeThat(ctx.wantPRs(), is(false));
@@ -70,7 +70,7 @@ public class OriginPullRequestDiscoveryTraitTest {
     }
 
     @Test
-    public void given__disoverMergeOnly__when__appliedToContext__then__strategiesCorrect() throws Exception {
+    public void given__discoverMergeOnly__when__appliedToContext__then__strategiesCorrect() throws Exception {
         BitbucketSCMSourceContext ctx = new BitbucketSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.wantBranches(), is(false));
         assumeThat(ctx.wantPRs(), is(false));
