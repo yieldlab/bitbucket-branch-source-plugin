@@ -111,7 +111,7 @@ public class BitbucketHgSCMBuilder extends MercurialSCMBuilder<BitbucketHgSCMBui
     }
 
     /**
-     * Provides the clone links from the {@link BitbucketRepository} to allow inference of ports for different protols.
+     * Provides the clone links from the {@link BitbucketRepository} to allow inference of ports for different protocols.
      *
      * @param cloneLinks the clone links.
      * @return {@code this} for method chaining.

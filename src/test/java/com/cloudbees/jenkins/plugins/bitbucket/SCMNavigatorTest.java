@@ -69,7 +69,7 @@ public class SCMNavigatorTest {
         assertEquals("repo(.*)", navigator.getPattern());
 
         List<String> observed = observer.getObserved();
-        // Only 2 repositores match the pattern
+        // Only 2 repositories match the pattern
         assertTrue("There must be 2 repositories in the team, but was " + observed.size(), observed.size() == 2);
         assertEquals("repo1", observed.get(0));
         assertEquals("repo2", observed.get(1));

@@ -473,7 +473,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
 
     /**
      * The role parameter only makes sense when the request is authenticated, so
-     * if there is no auth information ({@link #credentials}) the role will be omited.
+     * if there is no auth information ({@link #credentials}) the role will be omitted.
      */
     @NonNull
     @Override
@@ -566,7 +566,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     /**
-     * Caller's responsbile to close the InputStream.
+     * Caller's responsible to close the InputStream.
      */
     private InputStream getRequestAsInputStream(String path) throws IOException, InterruptedException {
         GetMethod httpget = new GetMethod(path);

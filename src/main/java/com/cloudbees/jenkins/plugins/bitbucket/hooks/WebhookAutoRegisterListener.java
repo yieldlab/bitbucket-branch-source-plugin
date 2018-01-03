@@ -128,10 +128,10 @@ public class WebhookAutoRegisterListener extends ItemListener {
         });
     }
 
-    // synchronized just to avoid duplicated webhooks in case SCMSourceOwner is updated repeteadly and quickly
+    // synchronized just to avoid duplicated webhooks in case SCMSourceOwner is updated repeatedly and quickly
     private synchronized void registerHooks(SCMSourceOwner owner) throws IOException, InterruptedException {
         String rootUrl = Jenkins.getActiveInstance().getRootUrl();
-        List<BitbucketSCMSource> sources = getBitucketSCMSources(owner);
+        List<BitbucketSCMSource> sources = getBitbucketSCMSources(owner);
         if (sources.isEmpty()) {
             // don't spam logs if we are irrelevant
             return;
@@ -191,7 +191,7 @@ public class WebhookAutoRegisterListener extends ItemListener {
     }
 
     private void removeHooks(SCMSourceOwner owner) throws IOException, InterruptedException {
-        List<BitbucketSCMSource> sources = getBitucketSCMSources(owner);
+        List<BitbucketSCMSource> sources = getBitbucketSCMSources(owner);
         for (BitbucketSCMSource source : sources) {
             BitbucketApi bitbucket = bitbucketApiFor(source);
             if (bitbucket != null) {
@@ -256,7 +256,7 @@ public class WebhookAutoRegisterListener extends ItemListener {
         return false;
     }
 
-    private List<BitbucketSCMSource> getBitucketSCMSources(SCMSourceOwner owner) {
+    private List<BitbucketSCMSource> getBitbucketSCMSources(SCMSourceOwner owner) {
         List<BitbucketSCMSource> sources = new ArrayList<BitbucketSCMSource>();
         for (SCMSource source : owner.getSCMSources()) {
             if (source instanceof BitbucketSCMSource) {

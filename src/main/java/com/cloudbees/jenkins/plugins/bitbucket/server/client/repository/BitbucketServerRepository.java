@@ -45,7 +45,7 @@ public class BitbucketServerRepository implements BitbucketRepository {
     private String repositoryName;
 
     // JSON mapping added in setter because the field can not be called "public"
-    private Boolean publc;
+    private Boolean public_;
 
     @JsonProperty
     @JsonDeserialize(keyAs = String.class, contentUsing = BitbucketHref.Deserializer.class)
@@ -85,12 +85,12 @@ public class BitbucketServerRepository implements BitbucketRepository {
 
     @Override
     public boolean isPrivate() {
-        return !publc;
+        return !public_;
     }
 
     @JsonProperty("public")
-    public void setPublic(Boolean publc) {
-        this.publc = publc;
+    public void setPublic(Boolean public_) {
+        this.public_ = public_;
     }
 
     @JsonIgnore

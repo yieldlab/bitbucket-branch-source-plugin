@@ -40,7 +40,7 @@ public abstract class BitbucketNotifier {
      * @param repoName repository name
      * @param hash commit hash
      * @param content notification content
-     * @throws IOException if there was a communictaion error during notification.
+     * @throws IOException if there was a communication error during notification.
      * @throws InterruptedException if interrupted during notification.
      */
     public abstract void notify(@CheckForNull String repoOwner, @CheckForNull String repoName, String hash, String content)
@@ -50,7 +50,7 @@ public abstract class BitbucketNotifier {
      * Notify bitbucket through the build status API.
      *
      * @param status the status object to serialize
-     * @throws IOException if there was a communictaion error during notification.
+     * @throws IOException if there was a communication error during notification.
      * @throws InterruptedException if interrupted during notification.
      */
     public abstract void buildStatus(BitbucketBuildStatus status) throws IOException, InterruptedException;
@@ -61,7 +61,7 @@ public abstract class BitbucketNotifier {
      *
      * @param hash commit hash
      * @param content notification content 
-     * @throws IOException if there was a communictaion error during notification.
+     * @throws IOException if there was a communication error during notification.
      * @throws InterruptedException if interrupted during notification.
      */
     public void notify(String hash, String content) throws IOException, InterruptedException {

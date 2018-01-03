@@ -34,7 +34,7 @@ import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * A {@link SCMSourceTrait} that supresses all pull requests if the repository is public.
+ * A {@link SCMSourceTrait} that suppresses all pull requests if the repository is public.
  *
  * @since 2.2.0
  */
