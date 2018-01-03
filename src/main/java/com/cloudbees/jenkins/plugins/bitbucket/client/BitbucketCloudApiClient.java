@@ -566,7 +566,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     /**
-     * Caller's responsbile to close the InputStream.
+     * Caller's responsible to close the InputStream.
      */
     private InputStream getRequestAsInputStream(String path) throws IOException, InterruptedException {
         GetMethod httpget = new GetMethod(path);
