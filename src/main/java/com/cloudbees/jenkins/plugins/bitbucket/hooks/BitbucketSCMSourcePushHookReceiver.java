@@ -84,7 +84,7 @@ public class BitbucketSCMSourcePushHookReceiver extends CrumbExclusion implement
      * @param req Stapler request. It contains the payload in the body content
      *          and a header param "X-Event-Key" pointing to the event type.
      * @return the HTTP response object
-     * @throws IOException if there is any issue reading the HTTP content paylod.
+     * @throws IOException if there is any issue reading the HTTP content payload.
      */
     public HttpResponse doNotify(StaplerRequest req) throws IOException {
         String origin = SCMEvent.originOf(req);
