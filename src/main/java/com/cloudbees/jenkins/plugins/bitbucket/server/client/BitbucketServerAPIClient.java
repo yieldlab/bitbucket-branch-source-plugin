@@ -60,7 +60,6 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,7 +88,6 @@ import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.type.TypeReference;
-import static com.cloudbees.jenkins.plugins.bitbucket.Utils.encodePath;
 
 /**
  * Bitbucket API client.
@@ -776,15 +774,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile directory) throws IOException, InterruptedException {
         List<SCMFile> files = new ArrayList<>();
-        String path = encodePath(directory.getPath());
-        String ref = URLEncoder.encode(directory.getRef(), "UTF-8");
         int start=0;
         UriTemplate template = UriTemplate
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", path)
-                .set("at", ref)
+                .set("path", directory.getPath())
+                .set("at", directory.getRef())
                 .set("start", start)
                 .set("limit", 500);
         String url = template.expand();
@@ -824,15 +820,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
         List<String> lines = new ArrayList<>();
-        String path = encodePath(file.getPath());
-        String ref = URLEncoder.encode(file.getRef(), "UTF-8");
         int start=0;
         UriTemplate template = UriTemplate
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", path)
-                .set("at", ref)
+                .set("path", file.getPath())
+                .set("at", file.getRef())
                 .set("start", start)
                 .set("limit", 500);
         String url = template.expand();

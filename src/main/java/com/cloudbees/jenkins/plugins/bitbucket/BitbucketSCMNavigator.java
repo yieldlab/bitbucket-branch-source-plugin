@@ -40,6 +40,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -530,7 +531,10 @@ public class BitbucketSCMNavigator extends SCMNavigator {
             ));
             String avatarUrl;
             if (team instanceof BitbucketServerProject) {
-                avatarUrl = serverUrl + "/rest/api/1.0/projects/" + Util.rawEncode(repoOwner) + "/avatar.png";
+                avatarUrl = UriTemplate
+                        .fromTemplate(serverUrl + "/rest/api/1.0/projects/{repo}/avatar.png")
+                        .set("repo", repoOwner)
+                        .expand();
             }else {
                 avatarUrl = getLink(team.getLinks(), "avatar");
             }

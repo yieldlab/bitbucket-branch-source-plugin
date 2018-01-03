@@ -90,7 +90,6 @@ import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.type.TypeReference;
-import static com.cloudbees.jenkins.plugins.bitbucket.Utils.encodePath;
 
 public class BitbucketCloudApiClient implements BitbucketApi {
     private static final Logger LOGGER = Logger.getLogger(BitbucketCloudApiClient.class.getName());
@@ -420,7 +419,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
      */
     @Override
     public void updateCommitWebHook(@NonNull BitbucketWebHook hook) throws IOException, InterruptedException {
-        putRequest(V2_API_BASE_URL + owner + "/" + repositoryName + "/hooks/" + Util.rawEncode(hook.getUuid()), JsonParser.toJson(hook));
+        String url = UriTemplate
+                .fromTemplate(REPO_URL_TEMPLATE + "/hooks/{hook}")
+                .set("hook", hook.getUuid())
+                .expand();
+        putRequest(url, JsonParser.toJson(hook));
     }
 
     /**

@@ -46,6 +46,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -71,7 +72,6 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1041,36 +1041,55 @@ public class BitbucketSCMSource extends SCMSource {
             String title;
             if (head instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                branchUrl = repoOwner + "/" + repository + "/pull-requests/" + pr.getId();
+                UriTemplate template = UriTemplate
+                        .fromTemplate("{/owner,repo}/pull-requests/{id}")
+                        .set("owner", repoOwner)
+                        .set("repo", repository)
+                        .set("id", pr.getId());
+                branchUrl = template.expand();
                 title = getPullRequestTitleCache().get(pr.getId());
                 ContributorMetadataAction contributor = getPullRequestContributorCache().get(pr.getId());
                 if (contributor != null) {
                     result.add(contributor);
                 }
             } else {
-                branchUrl = repoOwner + "/" + repository + "/branch/" + Util.rawEncode(head.getName());
+                UriTemplate template = UriTemplate
+                        .fromTemplate("{/owner,repo}/branch/{head}")
+                        .set("owner", repoOwner)
+                        .set("repo", repository)
+                        .set("head", head.getName());
+                branchUrl = template.expand();
                 title = null;
             }
-            result.add(new BitbucketLink("icon-bitbucket-branch", getServerUrl() + "/" + branchUrl));
-            result.add(new ObjectMetadataAction(title, null, getServerUrl() + "/" + branchUrl));
+            result.add(new BitbucketLink("icon-bitbucket-branch", getServerUrl() + branchUrl));
+            result.add(new ObjectMetadataAction(title, null, getServerUrl() + branchUrl));
         } else {
             String branchUrl;
             String title;
             if (head instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                branchUrl = "projects/" + repoOwner + "/repos/" + repository + "/pull-requests/" +pr.getId()+"/overview";
+                UriTemplate template = UriTemplate
+                        .fromTemplate("/projects{/owner}/repos{/repo}/pull-requests/{id}/overview")
+                        .set("owner", repoOwner)
+                        .set("repo", repository)
+                        .set("id", pr.getId());
+                branchUrl = template.expand();
                 title = getPullRequestTitleCache().get(pr.getId());
                 ContributorMetadataAction contributor = getPullRequestContributorCache().get(pr.getId());
                 if (contributor != null) {
                     result.add(contributor);
                 }
             } else {
-                branchUrl = "projects/" + repoOwner + "/repos/" + repository + "/compare/commits"
-                        + "?sourceBranch=" + URLEncoder.encode(Constants.R_HEADS + head.getName(), "UTF-8");
+                UriTemplate template = UriTemplate
+                        .fromTemplate("/projects{/owner}/repos{/repo}/compare/commits{?sourceBranch}")
+                        .set("owner", repoOwner)
+                        .set("repo", repository)
+                        .set("sourceBranch", Constants.R_HEADS + head.getName());
+                branchUrl = template.expand();
                 title = null;
             }
-            result.add(new BitbucketLink("icon-bitbucket-branch", getServerUrl() + "/" + branchUrl));
-            result.add(new ObjectMetadataAction(title, null, getServerUrl()+"/"+branchUrl));
+            result.add(new BitbucketLink("icon-bitbucket-branch", getServerUrl() + branchUrl));
+            result.add(new ObjectMetadataAction(title, null, getServerUrl() + branchUrl));
         }
         SCMSourceOwner owner = getOwner();
         if (owner instanceof Actionable) {
