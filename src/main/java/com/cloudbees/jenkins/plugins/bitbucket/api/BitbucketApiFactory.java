@@ -1,6 +1,5 @@
 package com.cloudbees.jenkins.plugins.bitbucket.api;
 
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -28,14 +27,14 @@ public abstract class BitbucketApiFactory implements ExtensionPoint {
      * repository.
      *
      * @param serverUrl   the server URL.
-     * @param credentials the (optional) credentials.
+     * @param authenticator the (optional) authenticator.
      * @param owner       the owner name.
      * @param repository  the (optional) repository name.
      * @return the {@link BitbucketApi}.
      */
     @NonNull
     protected abstract BitbucketApi create(@Nullable String serverUrl,
-                                           @Nullable StandardUsernamePasswordCredentials credentials,
+                                           @Nullable BitbucketAuthenticator authenticator,
                                            @NonNull String owner,
                                            @CheckForNull String repository);
 
@@ -44,7 +43,7 @@ public abstract class BitbucketApiFactory implements ExtensionPoint {
      * repository.
      *
      * @param serverUrl   the server URL.
-     * @param credentials the (optional) credentials.
+     * @param authenticator the (optional) authenticator.
      * @param owner       the owner name.
      * @param repository  the (optional) repository name.
      * @return the {@link BitbucketApi}.
@@ -52,12 +51,12 @@ public abstract class BitbucketApiFactory implements ExtensionPoint {
      */
     @NonNull
     public static BitbucketApi newInstance(@Nullable String serverUrl,
-                                           @Nullable StandardUsernamePasswordCredentials credentials,
+                                           @Nullable BitbucketAuthenticator authenticator,
                                            @NonNull String owner,
                                            @CheckForNull String repository) {
         for (BitbucketApiFactory factory : ExtensionList.lookup(BitbucketApiFactory.class)) {
             if (factory.isMatch(serverUrl)) {
-                return factory.create(serverUrl, credentials, owner, repository);
+                return factory.create(serverUrl, authenticator, owner, repository);
             }
         }
         throw new IllegalArgumentException("Unsupported Bitbucket server URL: " + serverUrl);

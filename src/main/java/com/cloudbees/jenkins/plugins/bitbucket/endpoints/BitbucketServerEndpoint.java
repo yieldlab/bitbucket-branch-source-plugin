@@ -23,8 +23,8 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -79,7 +79,7 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
      * @param displayName   Optional name to use to describe the end-point.
      * @param serverUrl     The URL of this Bitbucket Server
      * @param manageHooks   {@code true} if and only if Jenkins is supposed to auto-manage hooks for this end-point.
-     * @param credentialsId The {@link StandardUsernamePasswordCredentials#getId()} of the credentials to use for
+     * @param credentialsId The {@link StandardCredentials#getId()} of the credentials to use for
      *                      auto-management of hooks.
      */
     @DataBoundConstructor

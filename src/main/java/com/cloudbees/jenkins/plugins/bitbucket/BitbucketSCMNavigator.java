@@ -25,6 +25,7 @@ package com.cloudbees.jenkins.plugins.bitbucket;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApiFactory;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
@@ -35,9 +36,10 @@ import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfig
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerProject;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.damnhandy.uri.template.UriTemplate;
@@ -71,6 +73,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
@@ -450,11 +453,11 @@ public class BitbucketSCMNavigator extends SCMNavigator {
             listener.getLogger().format("Must specify a repository owner%n");
             return;
         }
-        StandardUsernamePasswordCredentials credentials = BitbucketCredentials.lookupCredentials(
+        StandardCredentials credentials = BitbucketCredentials.lookupCredentials(
                 serverUrl,
                 observer.getContext(),
                 credentialsId,
-                StandardUsernamePasswordCredentials.class
+                StandardCredentials.class
         );
 
         if (credentials == null) {
@@ -468,7 +471,9 @@ public class BitbucketSCMNavigator extends SCMNavigator {
             SourceFactory sourceFactory = new SourceFactory(request);
             WitnessImpl witness = new WitnessImpl(request, listener);
 
-            BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, credentials, repoOwner, null);
+            BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials);
+
+            BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, authenticator, repoOwner, null);
             BitbucketTeam team = bitbucket.getTeam();
             if (team != null) {
                 // Navigate repositories of the team
@@ -499,11 +504,11 @@ public class BitbucketSCMNavigator extends SCMNavigator {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         listener.getLogger().printf("Looking up team details of %s...%n", getRepoOwner());
         List<Action> result = new ArrayList<>();
-        StandardUsernamePasswordCredentials credentials = BitbucketCredentials.lookupCredentials(
+        StandardCredentials credentials = BitbucketCredentials.lookupCredentials(
                 serverUrl,
                 owner,
                 credentialsId,
-                StandardUsernamePasswordCredentials.class
+                StandardCredentials.class
         );
 
         if (credentials == null) {
@@ -514,7 +519,10 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                     serverUrl,
                     CredentialsNameProvider.name(credentials));
         }
-        BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, credentials, repoOwner, null);
+
+        BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials);
+
+        BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, authenticator, repoOwner, null);
         BitbucketTeam team = bitbucket.getTeam();
         if (team != null) {
             String defaultTeamUrl;
@@ -611,8 +619,15 @@ public class BitbucketSCMNavigator extends SCMNavigator {
             return BitbucketEndpointConfiguration.get().getEndpointItems();
         }
 
-        public FormValidation doCheckCredentialsId(@QueryParameter String value) {
+        public FormValidation doCheckCredentialsId(@AncestorInPath SCMSourceOwner context, @QueryParameter String serverUrl, @QueryParameter String value) {
             if (!value.isEmpty()) {
+                if (CredentialsMatchers.firstOrNull(
+                        CredentialsProvider.lookupCredentials(StandardCertificateCredentials.class,
+                                context,
+                                context instanceof Queue.Task ? Tasks.getDefaultAuthenticationOf((Queue.Task) context) : ACL.SYSTEM,
+                                URIRequirementBuilder.fromUri(serverUrl).build()), CredentialsMatchers.withId(value)) != null) {
+                       return FormValidation.warning("A certificate was selected. You will likely need to configure Checkout over SSH.");
+                }
                 return FormValidation.ok();
             } else {
                 return FormValidation.warning("Credentials are required for build notifications");
@@ -642,9 +657,11 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                             ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
                             : ACL.SYSTEM,
                     context,
-                    StandardUsernameCredentials.class,
+                    StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class))
+                    CredentialsMatchers.anyOf(
+                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                            CredentialsMatchers.instanceOf(StandardCertificateCredentials.class))
             );
             return result;
         }
@@ -722,10 +739,13 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardCredentials.class))
+                    CredentialsMatchers.anyOf(
+                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                            CredentialsMatchers.instanceOf(StandardCertificateCredentials.class))
             );
             return result;
         }
+
 
         @NonNull
         @Override
