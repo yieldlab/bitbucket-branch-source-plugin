@@ -298,7 +298,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     public boolean checkPathExists(@NonNull String branchOrHash, @NonNull String path)
             throws IOException, InterruptedException {
-        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash*}{/path*}")
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash}{/path}")
                 .set("owner", owner)
                 .set("repo", repositoryName)
                 .set("branchOrHash", branchOrHash)
@@ -508,8 +508,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     @CheckForNull
     public BitbucketTeam getTeam() throws IOException, InterruptedException {
-        String url = UriTemplate.fromTemplate("{+base}{/owner}")
-                .set("base", V2_TEAMS_API_BASE_URL)
+        String url = UriTemplate.fromTemplate(V2_TEAMS_API_BASE_URL + "{/owner}")
                 .set("owner", owner)
                 .expand();
         try {
@@ -532,8 +531,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     public List<BitbucketCloudRepository> getRepositories(@CheckForNull UserRoleInRepository role)
             throws InterruptedException, IOException {
         Integer pageNumber = 1;
-        UriTemplate template = UriTemplate.fromTemplate("{+base}{/owner}{?role,page,pagelen}")
-                .set("base", V2_API_BASE_URL)
+        UriTemplate template = UriTemplate.fromTemplate(V2_API_BASE_URL + "{/owner}{?role,page,pagelen}")
                 .set("owner", owner)
                 .set("page", pageNumber)
                 .set("pagelen", 50);
@@ -757,7 +755,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     public Iterable<SCMFile> getDirectoryContent(final BitbucketSCMFile parent) throws IOException, InterruptedException {
-        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash*}{/path*}")
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash}{/path}")
                 .set("owner", owner)
                 .set("repo", repositoryName)
                 .set("branchOrHash", parent.getRef())
@@ -784,7 +782,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
-        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash*}{/path*}")
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash}{/path}")
                 .set("owner", owner)
                 .set("repo", repositoryName)
                 .set("branchOrHash", file.getRef())
