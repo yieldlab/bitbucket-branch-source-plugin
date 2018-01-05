@@ -75,7 +75,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
     @NonNull
     @Override
     public SCMFile getRoot() {
-        return new BitbucketSCMFile(this, api, ref);
+        return new BitbucketSCMFile(this, api, ref, getRevision().toString());
     }
 
     @Extension

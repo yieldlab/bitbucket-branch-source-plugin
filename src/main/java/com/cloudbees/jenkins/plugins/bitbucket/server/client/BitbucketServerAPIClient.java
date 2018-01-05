@@ -836,7 +836,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 fileType = SCMFile.Type.DIRECTORY;
             }
             if(components.size() > 0 && fileType != null){
-                files.add(new BitbucketSCMFile(parent, components.get(0), fileType));
+                // revision is set to null as fetched values from server API do not give us revision hash
+                // Later on hash is not needed anyways when file content is fetched from server API
+                files.add(new BitbucketSCMFile(parent, components.get(0), fileType, null));
             }
         }
     }

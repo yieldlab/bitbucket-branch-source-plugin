@@ -26,6 +26,7 @@ package com.cloudbees.jenkins.plugins.bitbucket.client.repository;
 
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import java.util.List;
+import java.util.Map;
 import jenkins.scm.api.SCMFile;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -34,13 +35,15 @@ import org.codehaus.jackson.annotate.JsonProperty;
 public class BitbucketRepositorySource {
     private final String path;
     private final String type;
+    private final String hash;
     private final List<String> attributes;
 
     @JsonCreator
-    public BitbucketRepositorySource(@JsonProperty("path") String path, @JsonProperty("type") String type, @JsonProperty("attributes") List<String> attributes) {
+    public BitbucketRepositorySource(@JsonProperty("path") String path, @JsonProperty("type") String type, @JsonProperty("attributes") List<String> attributes, @JsonProperty("commit") Map commit) {
         this.path = path;
         this.type = type;
         this.attributes = attributes;
+        this.hash = (String) commit.get("hash");
     }
 
     @JsonProperty("path")
@@ -56,6 +59,11 @@ public class BitbucketRepositorySource {
     @JsonProperty("attributes")
     public List<String> getAttributes() {
         return attributes;
+    }
+
+    @JsonIgnore
+    public String getHash() {
+        return hash;
     }
 
     @JsonIgnore
@@ -77,6 +85,6 @@ public class BitbucketRepositorySource {
                 }
             }
         }
-        return new BitbucketSCMFile(parent, path, fileType);
+        return new BitbucketSCMFile(parent, path, fileType, hash);
     }
 }

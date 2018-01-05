@@ -836,7 +836,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash,path}")
                 .set("owner", owner)
                 .set("repo", repositoryName)
-                .set("branchOrHash", parent.getRef())
+                .set("branchOrHash", parent.getHash())
                 .set("path", parent.getPath())
                 .expand();
         List<SCMFile> result = new ArrayList<>();
@@ -863,7 +863,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash,path}")
                 .set("owner", owner)
                 .set("repo", repositoryName)
-                .set("branchOrHash", file.getRef())
+                .set("branchOrHash", file.getHash())
                 .set("path", file.getPath())
                 .expand();
         return getRequestAsInputStream(url);
