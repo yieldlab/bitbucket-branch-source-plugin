@@ -102,7 +102,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_DEFAULT_BRANCH_PATH = API_REPOSITORY_PATH + "/branches/default";
     private static final String API_BRANCHES_PATH = API_REPOSITORY_PATH + "/branches{?start,limit}";
     private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit}";
-    private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "pull-requests/{id}";
+    private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}";
     private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path}{?at}";
     private static final String API_COMMITS_PATH = API_REPOSITORY_PATH + "/commits{/hash}";
     private static final String API_PROJECT_PATH = API_BASE_PATH + "/projects/{owner}";
