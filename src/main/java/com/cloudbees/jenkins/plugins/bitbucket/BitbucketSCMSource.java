@@ -1037,59 +1037,50 @@ public class BitbucketSCMSource extends SCMSource {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         if (BitbucketCloudEndpoint.SERVER_URL.equals(getServerUrl())) {
-            String branchUrl;
+            UriTemplate template = UriTemplate
+                    .fromTemplate(getServerUrl() + "{/owner,repo}/{branchOrPR}/{prIdOrHead}")
+                    .set("owner", repoOwner)
+                    .set("repo", repository);
             String title;
             if (head instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                UriTemplate template = UriTemplate
-                        .fromTemplate("{/owner,repo}/pull-requests/{id}")
-                        .set("owner", repoOwner)
-                        .set("repo", repository)
-                        .set("id", pr.getId());
-                branchUrl = template.expand();
+                template.set("branchOrPR", "pull-requests").set("prIdOrHead", pr.getId());
                 title = getPullRequestTitleCache().get(pr.getId());
                 ContributorMetadataAction contributor = getPullRequestContributorCache().get(pr.getId());
                 if (contributor != null) {
                     result.add(contributor);
                 }
             } else {
-                UriTemplate template = UriTemplate
-                        .fromTemplate("{/owner,repo}/branch/{head}")
-                        .set("owner", repoOwner)
-                        .set("repo", repository)
-                        .set("head", head.getName());
-                branchUrl = template.expand();
+                template.set("branchOrPR", "branch").set("prIdOrHead", head.getName());
                 title = null;
             }
-            result.add(new BitbucketLink("icon-bitbucket-branch", getServerUrl() + branchUrl));
-            result.add(new ObjectMetadataAction(title, null, getServerUrl() + branchUrl));
+            result.add(new BitbucketLink("icon-bitbucket-branch", template.expand()));
+            result.add(new ObjectMetadataAction(title, null, template.expand()));
         } else {
-            String branchUrl;
+            UriTemplate template;
             String title;
             if (head instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                UriTemplate template = UriTemplate
-                        .fromTemplate("/projects{/owner}/repos{/repo}/pull-requests/{id}/overview")
+                template = UriTemplate
+                        .fromTemplate(getServerUrl() + "/projects{/owner}/repos{/repo}/pull-requests/{id}/overview")
                         .set("owner", repoOwner)
                         .set("repo", repository)
                         .set("id", pr.getId());
-                branchUrl = template.expand();
                 title = getPullRequestTitleCache().get(pr.getId());
                 ContributorMetadataAction contributor = getPullRequestContributorCache().get(pr.getId());
                 if (contributor != null) {
                     result.add(contributor);
                 }
             } else {
-                UriTemplate template = UriTemplate
-                        .fromTemplate("/projects{/owner}/repos{/repo}/compare/commits{?sourceBranch}")
+                template = UriTemplate
+                        .fromTemplate(getServerUrl() + "/projects{/owner}/repos{/repo}/compare/commits{?sourceBranch}")
                         .set("owner", repoOwner)
                         .set("repo", repository)
                         .set("sourceBranch", Constants.R_HEADS + head.getName());
-                branchUrl = template.expand();
                 title = null;
             }
-            result.add(new BitbucketLink("icon-bitbucket-branch", getServerUrl() + branchUrl));
-            result.add(new ObjectMetadataAction(title, null, getServerUrl() + branchUrl));
+            result.add(new BitbucketLink("icon-bitbucket-branch", template.expand()));
+            result.add(new ObjectMetadataAction(title, null, template.expand()));
         }
         SCMSourceOwner owner = getOwner();
         if (owner instanceof Actionable) {
