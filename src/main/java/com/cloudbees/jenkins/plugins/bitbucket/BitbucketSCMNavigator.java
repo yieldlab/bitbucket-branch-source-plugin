@@ -40,7 +40,6 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -622,10 +621,16 @@ public class BitbucketSCMNavigator extends SCMNavigator {
         public FormValidation doCheckCredentialsId(@AncestorInPath SCMSourceOwner context, @QueryParameter String serverUrl, @QueryParameter String value) {
             if (!value.isEmpty()) {
                 if (CredentialsMatchers.firstOrNull(
-                        CredentialsProvider.lookupCredentials(StandardCertificateCredentials.class,
+                        CredentialsProvider.lookupCredentials(
+                                StandardCertificateCredentials.class,
                                 context,
                                 context instanceof Queue.Task ? Tasks.getDefaultAuthenticationOf((Queue.Task) context) : ACL.SYSTEM,
-                                URIRequirementBuilder.fromUri(serverUrl).build()), CredentialsMatchers.withId(value)) != null) {
+                                URIRequirementBuilder.fromUri(serverUrl).build()),
+                        CredentialsMatchers.allOf(
+                                CredentialsMatchers.withId(value),
+                                AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                        )
+                ) != null) {
                        return FormValidation.warning("A certificate was selected. You will likely need to configure Checkout over SSH.");
                 }
                 return FormValidation.ok();
@@ -659,9 +664,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    CredentialsMatchers.anyOf(
-                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                            CredentialsMatchers.instanceOf(StandardCertificateCredentials.class))
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
             );
             return result;
         }
@@ -739,9 +742,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    CredentialsMatchers.anyOf(
-                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                            CredentialsMatchers.instanceOf(StandardCertificateCredentials.class))
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
             );
             return result;
         }

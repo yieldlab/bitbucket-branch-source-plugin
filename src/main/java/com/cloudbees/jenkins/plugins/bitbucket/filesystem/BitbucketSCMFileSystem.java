@@ -114,7 +114,10 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                                         ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
                                         : ACL.SYSTEM
                         ),
-                        CredentialsMatchers.withId(scanCredentialsId)
+                        CredentialsMatchers.allOf(
+                                CredentialsMatchers.withId(scanCredentialsId),
+                                AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                        )
                 );
             }
         }

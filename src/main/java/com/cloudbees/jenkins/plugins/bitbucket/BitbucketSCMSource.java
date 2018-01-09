@@ -46,7 +46,6 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.damnhandy.uri.template.UriTemplate;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
@@ -1177,10 +1176,16 @@ public class BitbucketSCMSource extends SCMSource {
                                                    @QueryParameter String bitbucketServerUrl) {
             if (!value.isEmpty()) {
                 if (CredentialsMatchers.firstOrNull(
-                        CredentialsProvider.lookupCredentials(StandardCertificateCredentials.class,
+                        CredentialsProvider.lookupCredentials(
+                                StandardCertificateCredentials.class,
                                 context,
                                 context instanceof Queue.Task ? Tasks.getDefaultAuthenticationOf((Queue.Task) context) : ACL.SYSTEM,
-                                URIRequirementBuilder.fromUri(bitbucketServerUrl).build()), CredentialsMatchers.withId(value)) != null) {
+                                URIRequirementBuilder.fromUri(bitbucketServerUrl).build()),
+                        CredentialsMatchers.allOf(
+                                CredentialsMatchers.withId(value),
+                                AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                        )
+                ) != null) {
                     return FormValidation.warning("A certificate was selected. You will likely need to configure Checkout over SSH.");
                 }
                 return FormValidation.ok();
@@ -1229,9 +1234,7 @@ public class BitbucketSCMSource extends SCMSource {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(serverUrl).build(),
-                    CredentialsMatchers.anyOf(
-                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                            CredentialsMatchers.instanceOf(StandardCertificateCredentials.class))
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
             );
             return result;
         }
@@ -1306,9 +1309,7 @@ public class BitbucketSCMSource extends SCMSource {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    CredentialsMatchers.anyOf(
-                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                            CredentialsMatchers.instanceOf(StandardCertificateCredentials.class))
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
             );
             return result;
         }

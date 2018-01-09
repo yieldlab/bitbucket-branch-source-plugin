@@ -13,7 +13,7 @@ import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 
-public class BitbucketUsernamePasswordAuthenticator extends BitbucketAuthenticator<StandardUsernamePasswordCredentials> {
+public class BitbucketUsernamePasswordAuthenticator extends BitbucketAuthenticator {
 
     private UsernamePasswordCredentials httpCredentials;
 

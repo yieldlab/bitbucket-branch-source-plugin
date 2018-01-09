@@ -6,16 +6,16 @@ import org.apache.http.HttpRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.HttpClientBuilder;
 
-public abstract class BitbucketAuthenticator<T extends StandardCredentials> {
+public abstract class BitbucketAuthenticator {
 
-    public final T credentials;
+    private String id;
 
     public String getId() {
-        return credentials.getId();
+        return id;
     }
 
-    public BitbucketAuthenticator(T credentials) {
-        this.credentials = credentials;
+    public BitbucketAuthenticator(StandardCredentials credentials) {
+        this.id = credentials.getId();
     }
 
     public void configureBuilder(HttpClientBuilder builder) { }

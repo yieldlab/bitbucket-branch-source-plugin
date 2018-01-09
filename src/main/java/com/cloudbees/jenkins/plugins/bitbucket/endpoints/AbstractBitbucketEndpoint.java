@@ -128,7 +128,10 @@ public abstract class AbstractBitbucketEndpoint extends AbstractDescribableImpl<
                         ACL.SYSTEM,
                         URIRequirementBuilder.fromUri(getServerUrl()).build()
                 ),
-                CredentialsMatchers.withId(credentialsId)
+                CredentialsMatchers.allOf(
+                        CredentialsMatchers.withId(credentialsId),
+                        AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                )
         );
     }
 
