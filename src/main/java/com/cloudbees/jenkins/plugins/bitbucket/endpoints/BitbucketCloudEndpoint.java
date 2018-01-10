@@ -24,6 +24,7 @@
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -82,7 +83,11 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
     @NonNull
     @Override
     public String getRepositoryUrl(@NonNull String repoOwner, @NonNull String repository) {
-        return SERVER_URL + "/" + Util.rawEncode(repoOwner) + "/" + Util.rawEncode(repository);
+        UriTemplate template = UriTemplate
+                .fromTemplate(SERVER_URL + "{/owner,repo}")
+                .set("owner", repoOwner)
+                .set("repo", repository);
+        return template.expand();
     }
 
     /**

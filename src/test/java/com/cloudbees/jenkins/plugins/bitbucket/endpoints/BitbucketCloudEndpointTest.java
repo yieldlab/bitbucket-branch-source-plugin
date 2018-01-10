@@ -23,6 +23,7 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
+import com.damnhandy.uri.template.UriTemplate;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -30,6 +31,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 public class BitbucketCloudEndpointTest {
+
+    private static final String V2_API_BASE_URL = "https://api.bitbucket.org/2.0/repositories";
+    private static final String V2_TEAMS_API_BASE_URL = "https://api.bitbucket.org/2.0/teams/";
 
     @Test
     public void smokes() {
@@ -41,6 +45,29 @@ public class BitbucketCloudEndpointTest {
     public void getRepositoryUrl() {
         assertThat(new BitbucketCloudEndpoint(false, null).getRepositoryUrl("tester", "test-repo"),
                 is("https://bitbucket.org/tester/test-repo"));
+    }
+
+    @Test
+    public void testRepositoryTemplate() {
+        String owner = "bob";
+        String repositoryName = "yetAnotherRepo";
+        UriTemplate template = UriTemplate
+                .buildFromTemplate("{+base}")
+                .path("owner", "repo")
+                .literal("/pullrequests")
+                .query("page", "pagelen")
+                .build();
+        String urlTemplate = V2_API_BASE_URL + "/" + owner + "/" + repositoryName + "/pullrequests?page=%d&pagelen=50";
+        int page = 1;
+        String url = String.format(urlTemplate, page);
+        String betterUrl = template
+                .set("base", V2_API_BASE_URL)
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("page", page)
+                .set("pagelen", 50)
+                .expand();
+        assertThat(url, is(betterUrl));
     }
 
 }
