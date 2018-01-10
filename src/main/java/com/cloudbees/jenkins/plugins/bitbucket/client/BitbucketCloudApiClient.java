@@ -111,9 +111,9 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         connectionManager.getParams().setMaxTotalConnections(22);
     }
     private static Cache<String, BitbucketTeam> cachedTeam = new Cache(6, TimeUnit.HOURS);
-    private static Cache<UriTemplate, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, TimeUnit.HOURS);
-    private BitbucketRepository cachedRepository;
-    private String cachedDefaultBranch;
+    private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, TimeUnit.HOURS);
+    private transient BitbucketRepository cachedRepository;
+    private transient String cachedDefaultBranch;
 
     public BitbucketCloudApiClient(String owner, String repositoryName, StandardUsernamePasswordCredentials creds) {
         if (creds != null) {
@@ -551,37 +551,33 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     public List<BitbucketCloudRepository> getRepositories(@CheckForNull UserRoleInRepository role)
             throws InterruptedException, IOException {
+        StringBuilder cacheKey = new StringBuilder();
+        cacheKey.append(owner).append("::").append(credentials.getUserName());
         final UriTemplate template = UriTemplate.fromTemplate(V2_API_BASE_URL + "{/owner}{?role,page,pagelen}")
                 .set("owner", owner)
                 .set("pagelen", 50);
         if (role != null && getLogin() != null) {
             template.set("role", role.getId());
+            cacheKey.append("::").append(role.getId());
         }
         try {
-            return cachedRepositories.get(template, new Callable<List<BitbucketCloudRepository>>() {
+            return cachedRepositories.get(cacheKey.toString(), new Callable<List<BitbucketCloudRepository>>() {
                 @Override
                 public List<BitbucketCloudRepository> call() throws Exception {
                     List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
                     Integer pageNumber = 1;
-                    String url = template.set("page", pageNumber).expand();
-                    String response = getRequest(url);
+                    String url, response;
                     PaginatedBitbucketRepository page;
-                    try {
-                        page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
-                        repositories.addAll(page.getValues());
-                    } catch (IOException e) {
-                        throw new IOException("I/O error when parsing response from URL: " + url, e);
-                    }
-                    while (page.getNext() != null) {
-                            pageNumber++;
-                            response = getRequest(url = template.set("page", pageNumber).expand());
+                    do {
+                        response = getRequest(url = template.set("page", pageNumber).expand());
                         try {
                             page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
                             repositories.addAll(page.getValues());
                         } catch (IOException e) {
                             throw new IOException("I/O error when parsing response from URL: " + url, e);
                         }
-                    }
+                        pageNumber++;
+                    } while (page.getNext() != null);
                     Collections.sort(repositories, new Comparator<BitbucketCloudRepository>() {
                         @Override
                         public int compare(BitbucketCloudRepository o1, BitbucketCloudRepository o2) {
