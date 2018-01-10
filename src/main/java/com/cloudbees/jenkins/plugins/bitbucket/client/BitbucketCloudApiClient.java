@@ -2,6 +2,7 @@
  * The MIT License
  *
  * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2017-2018, bguerin
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -69,6 +70,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -106,6 +110,10 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         connectionManager.getParams().setDefaultMaxConnectionsPerHost(20);
         connectionManager.getParams().setMaxTotalConnections(22);
     }
+    private static Cache<String, BitbucketTeam> cachedTeam = new Cache(6, TimeUnit.HOURS);
+    private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, TimeUnit.HOURS);
+    private transient BitbucketRepository cachedRepository;
+    private transient String cachedDefaultBranch;
 
     public BitbucketCloudApiClient(String owner, String repositoryName, StandardUsernamePasswordCredentials creds) {
         if (creds != null) {
@@ -260,16 +268,19 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         if (repositoryName == null) {
             throw new UnsupportedOperationException("Cannot get a repository from an API instance that is not associated with a repository");
         }
-        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE)
-                .set("owner", owner)
-                .set("repo", repositoryName)
-                .expand();
-        String response = getRequest(url);
-        try {
-            return JsonParser.toJava(response, BitbucketCloudRepository.class);
-        } catch (IOException e) {
-            throw new IOException("I/O error when parsing response from URL: " + url, e);
+        if (cachedRepository == null) {
+            String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE)
+                    .set("owner", owner)
+                    .set("repo", repositoryName)
+                    .expand();
+            String response = getRequest(url);
+            try {
+                cachedRepository =  JsonParser.toJava(response, BitbucketCloudRepository.class);
+            } catch (IOException e) {
+                throw new IOException("I/O error when parsing response from URL: " + url, e);
+            }
         }
+        return cachedRepository;
     }
 
     /**
@@ -314,25 +325,27 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @CheckForNull
     @Override
     public String getDefaultBranch() throws IOException, InterruptedException {
-        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/{?fields}")
-                .set("owner", owner)
-                .set("repo", repositoryName)
-                .set("fields", "mainbranch.name")
-                .expand();
-        String response;
-        try {
-            response = getRequest(url);
-        } catch (FileNotFoundException e) {
-            LOGGER.log(Level.FINE, "Could not find default branch for {0}/{1}",
-                    new Object[]{this.owner, this.repositoryName});
-            return null;
+        if (cachedDefaultBranch == null) {
+            String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/{?fields}")
+                    .set("owner", owner)
+                    .set("repo", repositoryName)
+                    .set("fields", "mainbranch.name")
+                    .expand();
+            String response;
+            try {
+                response = getRequest(url);
+            } catch (FileNotFoundException e) {
+                LOGGER.log(Level.FINE, "Could not find default branch for {0}/{1}",
+                        new Object[]{this.owner, this.repositoryName});
+                return null;
+            }
+            Map resp = JsonParser.toJava(response, Map.class);
+            Map mainbranch = (Map) resp.get("mainbranch");
+            if (mainbranch != null) {
+                cachedDefaultBranch = (String) mainbranch.get("name");
+            }
         }
-        Map resp = JsonParser.toJava(response, Map.class);
-        Map mainbranch = (Map) resp.get("mainbranch");
-        if (mainbranch != null) {
-            return (String) mainbranch.get("name");
-        }
-        return null;
+        return cachedDefaultBranch;
     }
 
     /**
@@ -508,17 +521,25 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     @CheckForNull
     public BitbucketTeam getTeam() throws IOException, InterruptedException {
-        String url = UriTemplate.fromTemplate(V2_TEAMS_API_BASE_URL + "{/owner}")
+        final String url = UriTemplate.fromTemplate(V2_TEAMS_API_BASE_URL + "{/owner}")
                 .set("owner", owner)
                 .expand();
         try {
-            String response = getRequest(url);
-            return JsonParser.toJava(response, BitbucketCloudTeam.class);
-        } catch (FileNotFoundException e) {
+            return cachedTeam.get(owner, new Callable<BitbucketTeam>() {
+                @Override
+                public BitbucketTeam call() throws Exception {
+                    try {
+                        String response = getRequest(url);
+                        return JsonParser.toJava(response, BitbucketCloudTeam.class);
+                    } catch (FileNotFoundException e) {
+                        return null;
+                    } catch (IOException e) {
+                        throw new IOException("I/O error when parsing response from URL: " + url, e);
+                    }
+                }
+            });
+        } catch (ExecutionException ex) {
             return null;
-        } catch (IOException e) {
-            throw new IOException("I/O error when parsing response from URL: " + url, e);
-
         }
     }
 
@@ -530,41 +551,45 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     public List<BitbucketCloudRepository> getRepositories(@CheckForNull UserRoleInRepository role)
             throws InterruptedException, IOException {
-        Integer pageNumber = 1;
-        UriTemplate template = UriTemplate.fromTemplate(V2_API_BASE_URL + "{/owner}{?role,page,pagelen}")
+        StringBuilder cacheKey = new StringBuilder();
+        cacheKey.append(owner).append("::").append(credentials.getUserName());
+        final UriTemplate template = UriTemplate.fromTemplate(V2_API_BASE_URL + "{/owner}{?role,page,pagelen}")
                 .set("owner", owner)
-                .set("page", pageNumber)
                 .set("pagelen", 50);
         if (role != null && getLogin() != null) {
             template.set("role", role.getId());
+            cacheKey.append("::").append(role.getId());
         }
-        String url = template.expand();
-        List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
-        String response = getRequest(url);
-        PaginatedBitbucketRepository page;
         try {
-            page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
-            repositories.addAll(page.getValues());
-        } catch (IOException e) {
-            throw new IOException("I/O error when parsing response from URL: " + url, e);
+            return cachedRepositories.get(cacheKey.toString(), new Callable<List<BitbucketCloudRepository>>() {
+                @Override
+                public List<BitbucketCloudRepository> call() throws Exception {
+                    List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
+                    Integer pageNumber = 1;
+                    String url, response;
+                    PaginatedBitbucketRepository page;
+                    do {
+                        response = getRequest(url = template.set("page", pageNumber).expand());
+                        try {
+                            page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
+                            repositories.addAll(page.getValues());
+                        } catch (IOException e) {
+                            throw new IOException("I/O error when parsing response from URL: " + url, e);
+                        }
+                        pageNumber++;
+                    } while (page.getNext() != null);
+                    Collections.sort(repositories, new Comparator<BitbucketCloudRepository>() {
+                        @Override
+                        public int compare(BitbucketCloudRepository o1, BitbucketCloudRepository o2) {
+                            return o1.getRepositoryName().compareTo(o2.getRepositoryName());
+                        }
+                    });
+                    return repositories;
+                }
+            });
+        } catch (ExecutionException ex) {
+            throw new IOException("Error while loading repositories from cache", ex);
         }
-        while (page.getNext() != null) {
-                pageNumber++;
-                response = getRequest(url = template.set("page", pageNumber).expand());
-            try {
-                page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
-                repositories.addAll(page.getValues());
-            } catch (IOException e) {
-                throw new IOException("I/O error when parsing response from URL: " + url, e);
-            }
-        }
-        Collections.sort(repositories, new Comparator<BitbucketCloudRepository>() {
-            @Override
-            public int compare(BitbucketCloudRepository o1, BitbucketCloudRepository o2) {
-                return o1.getRepositoryName().compareTo(o2.getRepositoryName());
-            }
-        });
-        return repositories;
     }
 
     /** {@inheritDoc} */
