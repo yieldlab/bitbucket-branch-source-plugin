@@ -34,28 +34,44 @@ import jenkins.scm.api.SCMFile;
 public class BitbucketSCMFile  extends SCMFile {
 
 	private final BitbucketApi api;
-	private final String ref;
+	private  String ref;
 	private final String hash;
 	
 	public String getRef() {
 		return ref;
 	}
 
+	public void setRef(String ref) {
+		this.ref = ref;
+	}
+
+	@Deprecated
 	public BitbucketSCMFile(BitbucketSCMFileSystem bitBucketSCMFileSystem,
 							BitbucketApi api,
-							String ref, String rev) {
+							String ref) {
+		this(bitBucketSCMFileSystem, api, ref, null);
+	}
+
+	public BitbucketSCMFile(BitbucketSCMFileSystem bitBucketSCMFileSystem,
+							BitbucketApi api,
+							String ref, String hash) {
 		super();
 		type(Type.DIRECTORY);
 		this.api = api;
 		this.ref = ref;
-		this.hash = rev;
+		this.hash = hash;
 	}
-	
-    public BitbucketSCMFile(@NonNull BitbucketSCMFile parent, String name, Type type, String rev) {
+
+	@Deprecated
+	public BitbucketSCMFile(@NonNull BitbucketSCMFile parent, String name, Type type) {
+		this(parent, name, type, null);
+	}
+
+	public BitbucketSCMFile(@NonNull BitbucketSCMFile parent, String name, Type type, String hash) {
     	super(parent, name);
     	this.api = parent.api;
     	this.ref = parent.ref;
-    	this.hash = rev;
+    	this.hash = hash;
     	type(type);
     }
 
