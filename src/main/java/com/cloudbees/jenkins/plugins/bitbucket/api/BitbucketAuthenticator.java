@@ -10,12 +10,12 @@ public abstract class BitbucketAuthenticator {
 
     private String id;
 
-    public String getId() {
-        return id;
+    public BitbucketAuthenticator(StandardCredentials credentials) {
+        id = credentials.getId();
     }
 
-    public BitbucketAuthenticator(StandardCredentials credentials) {
-        this.id = credentials.getId();
+    public String getId() {
+        return id;
     }
 
     public void configureBuilder(HttpClientBuilder builder) { }
