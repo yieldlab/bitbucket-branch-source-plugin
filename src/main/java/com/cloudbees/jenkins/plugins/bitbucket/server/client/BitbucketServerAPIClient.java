@@ -59,6 +59,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Proxy;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -641,6 +642,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         }
     }
 
+    /**
+     * Create HttpClient from given host/port
+     * @param host must be of format: scheme://host:port. e.g. http://localhost:7990
+     * @return CloseableHttpClient
+     */
     private CloseableHttpClient getHttpClient(String host) {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
@@ -703,7 +709,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     private static String getMethodHost(HttpRequestBase method) {
-        return method.getURI().getHost();
+        URI uri = method.getURI();
+        String scheme = uri.getScheme() == null ? "http" : uri.getScheme();
+        return scheme + "://" + uri.getAuthority();
     }
 
     private String postRequest(String path, List<? extends NameValuePair> params) throws IOException {
