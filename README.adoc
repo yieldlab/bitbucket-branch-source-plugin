@@ -4,3 +4,8 @@
 
 * Unlike GitHub, in BitBucket, https://bitbucket.org/site/master/issues/4828/team-admins-dont-have-read-access-to-forks[team admins do not have access to forks].
 This means that when you have a private repository, or a private fork of a public repository, the team admin will not be able to see the PRs within the fork.
+
+=== How-to run and test with Bitbucket Server locally
+
+* https://developer.atlassian.com/server/framework/atlassian-sdk/install-the-atlassian-sdk-on-a-linux-or-mac-system/[Install the Atlassian SDK on Linx or Mac] or https://developer.atlassian.com/server/framework/atlassian-sdk/install-the-atlassian-sdk-on-a-windows-system/[on Windows]
+* To run 5.2.0 server: atlas-run-standalone -u 6.3.0 --product bitbucket --version 5.2.0 --data-version 5.2.0
