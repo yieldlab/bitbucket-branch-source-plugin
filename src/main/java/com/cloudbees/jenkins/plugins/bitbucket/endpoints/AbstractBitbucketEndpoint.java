@@ -130,7 +130,7 @@ public abstract class AbstractBitbucketEndpoint extends AbstractDescribableImpl<
                 ),
                 CredentialsMatchers.allOf(
                         CredentialsMatchers.withId(credentialsId),
-                        AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                        AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(getServerUrl()))
                 )
         );
     }
@@ -142,7 +142,7 @@ public abstract class AbstractBitbucketEndpoint extends AbstractDescribableImpl<
      */
     @CheckForNull
     public BitbucketAuthenticator authenticator() {
-        return AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials());
+        return AuthenticationTokens.convert(BitbucketAuthenticator.authenticationContext(getServerUrl()), credentials());
     }
 
     /**

@@ -1037,7 +1037,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     @CheckForNull
     BitbucketAuthenticator authenticator() {
-        return AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials());
+        return AuthenticationTokens.convert(BitbucketAuthenticator.authenticationContext(getServerUrl()), credentials());
     }
 
     @NonNull
@@ -1183,7 +1183,7 @@ public class BitbucketSCMSource extends SCMSource {
                                 URIRequirementBuilder.fromUri(bitbucketServerUrl).build()),
                         CredentialsMatchers.allOf(
                                 CredentialsMatchers.withId(value),
-                                AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                                AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(bitbucketServerUrl))
                         )
                 ) != null) {
                     return FormValidation.warning("A certificate was selected. You will likely need to configure Checkout over SSH.");
@@ -1234,7 +1234,7 @@ public class BitbucketSCMSource extends SCMSource {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(serverUrl).build(),
-                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(serverUrl))
             );
             return result;
         }
@@ -1257,7 +1257,7 @@ public class BitbucketSCMSource extends SCMSource {
                     StandardCredentials.class
             );
 
-            BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials);
+            BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.authenticationContext(serverUrl), credentials);
 
             try {
                 BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, authenticator, repoOwner, null);
@@ -1309,7 +1309,7 @@ public class BitbucketSCMSource extends SCMSource {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(bitbucketServerUrl))
             );
             return result;
         }

@@ -59,7 +59,7 @@ public abstract class AbstractBitbucketEndpointDescriptor extends Descriptor<Abs
                 jenkins,
                 StandardCredentials.class,
                 URIRequirementBuilder.fromUri(serverUrl).build(),
-                AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(serverUrl))
         );
         return result;
     }

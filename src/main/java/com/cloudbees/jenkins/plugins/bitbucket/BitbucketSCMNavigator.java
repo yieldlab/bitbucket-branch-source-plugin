@@ -470,7 +470,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
             SourceFactory sourceFactory = new SourceFactory(request);
             WitnessImpl witness = new WitnessImpl(request, listener);
 
-            BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials);
+            BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.authenticationContext(serverUrl), credentials);
 
             BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, authenticator, repoOwner, null);
             BitbucketTeam team = bitbucket.getTeam();
@@ -519,7 +519,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                     CredentialsNameProvider.name(credentials));
         }
 
-        BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials);
+        BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.authenticationContext(serverUrl), credentials);
 
         BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, authenticator, repoOwner, null);
         BitbucketTeam team = bitbucket.getTeam();
@@ -628,7 +628,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                                 URIRequirementBuilder.fromUri(serverUrl).build()),
                         CredentialsMatchers.allOf(
                                 CredentialsMatchers.withId(value),
-                                AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                                AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(serverUrl))
                         )
                 ) != null) {
                        return FormValidation.warning("A certificate was selected. You will likely need to configure Checkout over SSH.");
@@ -664,7 +664,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(bitbucketServerUrl))
             );
             return result;
         }
@@ -742,7 +742,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                     context,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(bitbucketServerUrl))
             );
             return result;
         }

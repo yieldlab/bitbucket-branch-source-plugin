@@ -102,7 +102,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         }
         
         private static StandardCredentials lookupScanCredentials(@CheckForNull Item context,
-                @CheckForNull String scanCredentialsId) {
+                @CheckForNull String scanCredentialsId, String serverUrl) {
             if (Util.fixEmpty(scanCredentialsId) == null) {
                 return null;
             } else {
@@ -116,7 +116,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                         ),
                         CredentialsMatchers.allOf(
                                 CredentialsMatchers.withId(scanCredentialsId),
-                                AuthenticationTokens.matcher(BitbucketAuthenticator.class)
+                                AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(serverUrl))
                         )
                 );
             }
@@ -132,9 +132,9 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             String repository = src.getRepository();
             String serverUrl = src.getServerUrl();
             StandardCredentials credentials;
-            credentials = lookupScanCredentials(src.getOwner(), credentialsId);
+            credentials = lookupScanCredentials(src.getOwner(), credentialsId, serverUrl);
 
-            BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.class, credentials);
+            BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.authenticationContext(serverUrl), credentials);
             
             BitbucketApi apiClient = BitbucketApiFactory.newInstance(serverUrl, authenticator, owner, repository);
             String ref;
