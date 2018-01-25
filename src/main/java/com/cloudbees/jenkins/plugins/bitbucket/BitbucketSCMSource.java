@@ -1173,17 +1173,17 @@ public class BitbucketSCMSource extends SCMSource {
 
         public FormValidation doCheckCredentialsId(@CheckForNull @AncestorInPath SCMSourceOwner context,
                                                    @QueryParameter String value,
-                                                   @QueryParameter String bitbucketServerUrl) {
+                                                   @QueryParameter String serverUrl) {
             if (!value.isEmpty()) {
                 if (CredentialsMatchers.firstOrNull(
                         CredentialsProvider.lookupCredentials(
                                 StandardCertificateCredentials.class,
                                 context,
                                 context instanceof Queue.Task ? Tasks.getDefaultAuthenticationOf((Queue.Task) context) : ACL.SYSTEM,
-                                URIRequirementBuilder.fromUri(bitbucketServerUrl).build()),
+                                URIRequirementBuilder.fromUri(serverUrl).build()),
                         CredentialsMatchers.allOf(
                                 CredentialsMatchers.withId(value),
-                                AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(bitbucketServerUrl))
+                                AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(serverUrl))
                         )
                 ) != null) {
                     return FormValidation.warning("A certificate was selected. You will likely need to configure Checkout over SSH.");

@@ -654,7 +654,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
 
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath SCMSourceOwner context,
-                                                     @QueryParameter String bitbucketServerUrl) {
+                                                     @QueryParameter String serverUrl) {
             StandardListBoxModel result = new StandardListBoxModel();
             result.withEmptySelection();
             result.includeMatchingAs(
@@ -663,8 +663,8 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                             : ACL.SYSTEM,
                     context,
                     StandardCredentials.class,
-                    URIRequirementBuilder.fromUri(bitbucketServerUrl).build(),
-                    AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(bitbucketServerUrl))
+                    URIRequirementBuilder.fromUri(serverUrl).build(),
+                    AuthenticationTokens.matcher(BitbucketAuthenticator.authenticationContext(serverUrl))
             );
             return result;
         }
