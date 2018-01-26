@@ -30,7 +30,6 @@ public abstract class BitbucketAuthenticator {
      */
     public static final String PROTOCOL_HTTPS = "HTTPS";
 
-
     /**
      * The Bitbucket instance type as reported in an {@link AuthenticationTokenContext}
      */
@@ -68,14 +67,12 @@ public abstract class BitbucketAuthenticator {
      */
     public void configureBuilder(HttpClientBuilder builder) { }
 
-
     /**
      * Configures an {@link HttpClientContext}. Override
      * @param context The connection context
      * @param host host being connected to
      */
     public void configureContext(HttpClientContext context, HttpHost host) { }
-
 
     /**
      * Configures an {@link HttpRequest}. Override this if your authentication method needs to set headers on a
@@ -84,7 +81,6 @@ public abstract class BitbucketAuthenticator {
      * @param request the request.
      */
     public void configureRequest(HttpRequest request) { }
-
 
     /**
      * Generates context that sub-classes can use to determine if they would be able to authenticate against the
