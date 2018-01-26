@@ -615,7 +615,14 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     public List<BitbucketCloudRepository> getRepositories(@CheckForNull UserRoleInRepository role)
             throws InterruptedException, IOException {
         StringBuilder cacheKey = new StringBuilder();
-        cacheKey.append(owner).append("::").append(authenticator.getId());
+        cacheKey.append(owner);
+
+        if (authenticator != null) {
+            cacheKey.append("::").append(authenticator.getId());
+        } else {
+            cacheKey.append("::<anonymous>");
+        }
+
         final UriTemplate template = UriTemplate.fromTemplate(V2_API_BASE_URL + "{/owner}{?role,page,pagelen}")
                 .set("owner", owner)
                 .set("pagelen", 50);

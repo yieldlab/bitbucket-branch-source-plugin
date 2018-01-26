@@ -18,33 +18,33 @@ public abstract class BitbucketAuthenticator {
     /**
      * The URL protocol as reported in an {@link AuthenticationTokenContext}
      */
-    public static String PROTOCOL_PURPOSE = "PROTOCOL";
+    public static final String PROTOCOL_PURPOSE = "PROTOCOL";
 
     /**
      * The purpose value for HTTP instances
      */
-    public static String PROTOCOL_HTTP = "HTTP";
+    public static final String PROTOCOL_HTTP = "HTTP";
 
     /**
      * The purpose value for HTTPS instances
      */
-    public static String PROTOCOL_HTTPS = "HTTPS";
+    public static final String PROTOCOL_HTTPS = "HTTPS";
 
 
     /**
      * The Bitbucket instance type as reported in an {@link AuthenticationTokenContext}
      */
-    public static String INSTANCE_TYPE_PURPOSE = "INSTANCE_TYPE";
+    public static final String INSTANCE_TYPE_PURPOSE = "INSTANCE_TYPE";
 
     /**
      * Purpose value for bitbucket cloud (i.e. bitbucket.org)
      */
-    public static String INSTANCE_TYPE_CLOUD = "CLOUD";
+    public static final String INSTANCE_TYPE_CLOUD = "CLOUD";
 
     /**
      * Purpose value for bitbucket server
      */
-    public static String INSTANCE_TYPE_SERVER = "SERVER";
+    public static final String INSTANCE_TYPE_SERVER = "SERVER";
 
     /**
      * Constructor
