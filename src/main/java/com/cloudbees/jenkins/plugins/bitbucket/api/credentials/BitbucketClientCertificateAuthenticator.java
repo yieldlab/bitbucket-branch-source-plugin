@@ -15,6 +15,9 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 
+/**
+ * Authenticates against Bitbucket using a TLS client certificate
+ */
 public class BitbucketClientCertificateAuthenticator extends BitbucketAuthenticator {
 
     private KeyStore keyStore;
@@ -22,12 +25,19 @@ public class BitbucketClientCertificateAuthenticator extends BitbucketAuthentica
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketClientCertificateAuthenticator.class.getName());
 
+    /**
+     * {@inheritDoc}
+     */
     public BitbucketClientCertificateAuthenticator(StandardCertificateCredentials credentials) {
         super(credentials);
         keyStore = credentials.getKeyStore();
         password = credentials.getPassword();
     }
 
+    /**
+     * Sets the SSLContext for the builder to one that will connect with the selected certificate.
+     * @param builder The client builder.
+     */
     @Override
     public void configureBuilder(HttpClientBuilder builder) {
         try {

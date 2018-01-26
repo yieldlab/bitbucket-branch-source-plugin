@@ -13,16 +13,29 @@ import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 
+/**
+ * Authenticator that uses a username and password (probably the default)
+ */
 public class BitbucketUsernamePasswordAuthenticator extends BitbucketAuthenticator {
 
     private UsernamePasswordCredentials httpCredentials;
 
+    /**
+     * Constructor.
+     * @param credentials the username/password that will be used
+     */
     public BitbucketUsernamePasswordAuthenticator(StandardUsernamePasswordCredentials credentials) {
         super(credentials);
         httpCredentials = new UsernamePasswordCredentials(credentials.getUsername(),
                 Secret.toString(credentials.getPassword()));
     }
 
+    /**
+     * Sets up HTTP Basic Auth with the provided username/password
+     *
+     * @param context The connection context
+     * @param host host being connected to
+     */
     @Override
     public void configureContext(HttpClientContext context, HttpHost host) {
         CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
