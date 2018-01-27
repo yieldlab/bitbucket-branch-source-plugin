@@ -38,25 +38,21 @@ public class BitbucketAuthenticatorTest {
         AuthenticationTokenContext httpContext = BitbucketAuthenticator.authenticationContext("http://git.example.com");
         AuthenticationTokenContext httpsContext = BitbucketAuthenticator.authenticationContext("https://git.example.com");
 
-        assertThat(nullCloudContext.mustHave(BitbucketAuthenticator.PROTOCOL_PURPOSE,
-                BitbucketAuthenticator.PROTOCOL_HTTPS), is(true));
-        assertThat(nullCloudContext.mustHave(BitbucketAuthenticator.INSTANCE_TYPE_PURPOSE,
-                BitbucketAuthenticator.INSTANCE_TYPE_CLOUD), is(true));
+        assertThat(nullCloudContext.mustHave(BitbucketAuthenticator.SCHEME, "https"), is(true));
+        assertThat(nullCloudContext.mustHave(BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE,
+                BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE_CLOUD), is(true));
 
-        assertThat(cloudContext.mustHave(BitbucketAuthenticator.PROTOCOL_PURPOSE,
-                BitbucketAuthenticator.PROTOCOL_HTTPS), is(true));
-        assertThat(cloudContext.mustHave(BitbucketAuthenticator.INSTANCE_TYPE_PURPOSE,
-                BitbucketAuthenticator.INSTANCE_TYPE_CLOUD), is(true));
+        assertThat(cloudContext.mustHave(BitbucketAuthenticator.SCHEME, "https"), is(true));
+        assertThat(cloudContext.mustHave(BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE,
+                BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE_CLOUD), is(true));
 
-        assertThat(httpContext.mustHave(BitbucketAuthenticator.PROTOCOL_PURPOSE,
-                BitbucketAuthenticator.PROTOCOL_HTTP), is(true));
-        assertThat(httpContext.mustHave(BitbucketAuthenticator.INSTANCE_TYPE_PURPOSE,
-                BitbucketAuthenticator.INSTANCE_TYPE_SERVER), is(true));
+        assertThat(httpContext.mustHave(BitbucketAuthenticator.SCHEME, "http"), is(true));
+        assertThat(httpContext.mustHave(BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE,
+                BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE_SERVER), is(true));
 
-        assertThat(httpsContext.mustHave(BitbucketAuthenticator.PROTOCOL_PURPOSE,
-                BitbucketAuthenticator.PROTOCOL_HTTPS), is(true));
-        assertThat(httpsContext.mustHave(BitbucketAuthenticator.INSTANCE_TYPE_PURPOSE,
-                BitbucketAuthenticator.INSTANCE_TYPE_SERVER), is(true));
+        assertThat(httpsContext.mustHave(BitbucketAuthenticator.SCHEME, "https"), is(true));
+        assertThat(httpsContext.mustHave(BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE,
+                BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE_SERVER), is(true));
     }
 
     @Test

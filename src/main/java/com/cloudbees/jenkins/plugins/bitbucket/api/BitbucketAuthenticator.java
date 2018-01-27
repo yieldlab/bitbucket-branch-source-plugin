@@ -16,34 +16,29 @@ public abstract class BitbucketAuthenticator {
     private String id;
 
     /**
-     * The URL protocol as reported in an {@link AuthenticationTokenContext}
+     * The key for bitbucket URL as rerported in an {@link AuthenticationTokenContext}
      */
-    public static final String PROTOCOL_PURPOSE = "PROTOCOL";
+    public static final String SERVER_URL = "bitbucket.server.uri";
 
     /**
-     * The purpose value for HTTP instances
+     * The key for URL scheme as reported in an {@link AuthenticationTokenContext}
      */
-    public static final String PROTOCOL_HTTP = "HTTP";
+    public static final String SCHEME = "bitbucket.server.uri.scheme";
 
     /**
-     * The purpose value for HTTPS instances
+     * The key for Bitbucket instance type as reported in an {@link AuthenticationTokenContext}
      */
-    public static final String PROTOCOL_HTTPS = "HTTPS";
-
-    /**
-     * The Bitbucket instance type as reported in an {@link AuthenticationTokenContext}
-     */
-    public static final String INSTANCE_TYPE_PURPOSE = "INSTANCE_TYPE";
+    public static final String BITBUCKET_INSTANCE_TYPE = "bitbucket.server.type";
 
     /**
      * Purpose value for bitbucket cloud (i.e. bitbucket.org)
      */
-    public static final String INSTANCE_TYPE_CLOUD = "CLOUD";
+    public static final String BITBUCKET_INSTANCE_TYPE_CLOUD = "BITBUCKET_CLOUD";
 
     /**
      * Purpose value for bitbucket server
      */
-    public static final String INSTANCE_TYPE_SERVER = "SERVER";
+    public static final String BITBUCKET_INSTANCE_TYPE_SERVER = "BITBUCKET_SERVER";
 
     /**
      * Constructor
@@ -90,12 +85,17 @@ public abstract class BitbucketAuthenticator {
      * @return an {@link AuthenticationTokenContext} for use with the AuthenticationTokens APIs
      */
     public static AuthenticationTokenContext<BitbucketAuthenticator> authenticationContext(String serverUrl) {
-        boolean isHttps = serverUrl == null || serverUrl.startsWith("https");
-        boolean isCloud = serverUrl == null || serverUrl.equals(BitbucketCloudEndpoint.SERVER_URL);
+        if (serverUrl == null) {
+            serverUrl = BitbucketCloudEndpoint.SERVER_URL;
+        }
+
+        String scheme = serverUrl.split(":")[0].toLowerCase();
+        boolean isCloud = serverUrl.equals(BitbucketCloudEndpoint.SERVER_URL);
 
         return AuthenticationTokenContext.builder(BitbucketAuthenticator.class)
-                .with(PROTOCOL_PURPOSE, isHttps ? PROTOCOL_HTTPS : PROTOCOL_HTTP)
-                .with(INSTANCE_TYPE_PURPOSE, isCloud ? INSTANCE_TYPE_CLOUD : INSTANCE_TYPE_SERVER)
+                .with(SERVER_URL, serverUrl)
+                .with(SCHEME, scheme)
+                .with(BITBUCKET_INSTANCE_TYPE, isCloud ? BITBUCKET_INSTANCE_TYPE_CLOUD : BITBUCKET_INSTANCE_TYPE_SERVER)
                 .build();
     }
 }

@@ -40,7 +40,7 @@ public class BitbucketClientCertificateAuthenticatorSource
      */
     @Override
     public boolean isFit(AuthenticationTokenContext ctx) {
-        return ctx.mustHave(BitbucketAuthenticator.PROTOCOL_PURPOSE, BitbucketAuthenticator.PROTOCOL_HTTPS)
-                && ctx.mustHave(BitbucketAuthenticator.INSTANCE_TYPE_PURPOSE, BitbucketAuthenticator.INSTANCE_TYPE_SERVER);
+        return ctx.mustHave(BitbucketAuthenticator.SCHEME, "https")
+                && ctx.mustHave(BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE, BitbucketAuthenticator.BITBUCKET_INSTANCE_TYPE_SERVER);
     }
 }
