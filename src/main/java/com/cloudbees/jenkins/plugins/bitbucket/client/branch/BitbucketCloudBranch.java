@@ -25,6 +25,8 @@ package com.cloudbees.jenkins.plugins.bitbucket.client.branch;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudRepository;
+
+import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.codehaus.jackson.annotate.JsonCreator;
@@ -32,22 +34,33 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 public class BitbucketCloudBranch implements BitbucketBranch {
     private final String name;
+    private final boolean isActive;
     private long dateInMillis;
     private String hash;
 
     @JsonCreator
-    public BitbucketCloudBranch(@Nonnull @JsonProperty("name") String name, @Nullable @JsonProperty("target") BitbucketCloudBranch.Target target) {
+    public BitbucketCloudBranch(@Nonnull @JsonProperty("name") String name,
+                                @Nullable @JsonProperty("target") BitbucketCloudBranch.Target target,
+                                @Nullable @JsonProperty("heads") List<Head> heads) {
         this.name = name;
         if(target != null) {
             this.dateInMillis = target.repo.getUpdatedOn() != null ? target.repo.getUpdatedOn().getTime() : 0;
             this.hash = target.hash;
         }
+
+        // For Hg repositories, Bitbucket returns all branches, including the closed/inactive ones.
+        // To determine if a branch has been closed, we look at the heads property:
+        // - Branches with non-empty heads are active.
+        // - Branches with empty heads are inactive.
+        // - On branches from git repositories heads is null. They all are active.
+        this.isActive = heads == null || !heads.isEmpty();
     }
 
     public BitbucketCloudBranch(@Nonnull String name, String hash, long dateInMillis) {
         this.name = name;
         this.dateInMillis = dateInMillis;
         this.hash = hash;
+        this.isActive = true;
     }
 
     public String getRawNode() {
@@ -72,6 +85,10 @@ public class BitbucketCloudBranch implements BitbucketBranch {
         return dateInMillis;
     }
 
+    public boolean getIsActive() {
+        return isActive;
+    }
+
     public static class Target {
         private final String hash;
         private final BitbucketCloudRepository repo;
@@ -80,6 +97,15 @@ public class BitbucketCloudBranch implements BitbucketBranch {
         public Target(@Nonnull @JsonProperty("hash") String hash, @Nonnull @JsonProperty("repository") BitbucketCloudRepository repo) {
             this.hash = hash;
             this.repo = repo;
+        }
+    }
+
+    public static class Head {
+        private final String hash;
+
+        @JsonCreator
+        public Head(@Nonnull @JsonProperty("hash") String hash) {
+            this.hash = hash;
         }
     }
 }
