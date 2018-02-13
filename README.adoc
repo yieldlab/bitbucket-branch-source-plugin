@@ -7,5 +7,5 @@ This means that when you have a private repository, or a private fork of a publi
 
 === How-to run and test with Bitbucket Server locally
 
-* https://developer.atlassian.com/server/framework/atlassian-sdk/install-the-atlassian-sdk-on-a-linux-or-mac-system/[Install the Atlassian SDK on Linx or Mac] or https://developer.atlassian.com/server/framework/atlassian-sdk/install-the-atlassian-sdk-on-a-windows-system/[on Windows]
+* https://developer.atlassian.com/server/framework/atlassian-sdk/install-the-atlassian-sdk-on-a-linux-or-mac-system/[Install the Atlassian SDK on Linux or Mac] or https://developer.atlassian.com/server/framework/atlassian-sdk/install-the-atlassian-sdk-on-a-windows-system/[on Windows]
 * To run 5.2.0 server: atlas-run-standalone -u 6.3.0 --product bitbucket --version 5.2.0 --data-version 5.2.0
