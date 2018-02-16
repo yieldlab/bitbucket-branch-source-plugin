@@ -829,7 +829,16 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                     new TypeReference<BitbucketCloudPage<BitbucketCloudBranch>>(){});
             branches.addAll(page.getValues());
         }
-        return branches;
+
+        // Filter the inactive branches out
+        List<BitbucketCloudBranch> activeBranches = new ArrayList<>();
+        for (BitbucketCloudBranch branch: branches) {
+            if (branch.isActive()) {
+                activeBranches.add(branch);
+            }
+        }
+
+        return activeBranches;
     }
 
     public Iterable<SCMFile> getDirectoryContent(final BitbucketSCMFile parent) throws IOException, InterruptedException {
