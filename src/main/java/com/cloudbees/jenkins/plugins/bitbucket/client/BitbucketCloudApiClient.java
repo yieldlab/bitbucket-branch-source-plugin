@@ -833,7 +833,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         // Filter the inactive branches out
         List<BitbucketCloudBranch> activeBranches = new ArrayList<>();
         for (BitbucketCloudBranch branch: branches) {
-            if (branch.getIsActive()) {
+            if (branch.isActive()) {
                 activeBranches.add(branch);
             }
         }

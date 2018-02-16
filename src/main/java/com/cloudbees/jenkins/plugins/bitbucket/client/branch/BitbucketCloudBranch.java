@@ -85,7 +85,7 @@ public class BitbucketCloudBranch implements BitbucketBranch {
         return dateInMillis;
     }
 
-    public boolean getIsActive() {
+    public boolean isActive() {
         return isActive;
     }
 
