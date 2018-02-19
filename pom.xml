@@ -64,6 +64,10 @@
        <id>rsandell</id>
        <name>Bobby Sandell</name>
      </developer>
+     <developer>
+       <id>vivek</id>
+       <name>Vivek Pandey</name>
+     </developer>
  </developers>
 
   <scm>
