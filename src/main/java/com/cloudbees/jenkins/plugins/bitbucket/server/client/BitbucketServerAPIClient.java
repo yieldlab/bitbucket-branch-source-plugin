@@ -812,7 +812,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", directory.getPath())
+                .set("path", directory.getPath().split(Operator.PATH.getSeparator()))
                 .set("at", directory.getRef())
                 .set("start", start)
                 .set("limit", 500);
@@ -860,7 +860,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", file.getPath())
+                .set("path", file.getPath().split(Operator.PATH.getSeparator()))
                 .set("at", file.getRef())
                 .set("start", start)
                 .set("limit", 500);
