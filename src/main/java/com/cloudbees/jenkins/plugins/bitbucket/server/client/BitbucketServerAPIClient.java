@@ -647,7 +647,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
      * @param host must be of format: scheme://host:port. e.g. http://localhost:7990
      * @return CloseableHttpClient
      */
-    private CloseableHttpClient getHttpClient(String host) throws MalformedURLException {
+    private CloseableHttpClient getHttpClient(String host) {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
 
         if (credentials != null) {
@@ -665,7 +665,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return httpClientBuilder.build();
     }
 
-    private void setClientProxyParams(String host, HttpClientBuilder builder) throws MalformedURLException{
+    private void setClientProxyParams(String host, HttpClientBuilder builder) {
         Jenkins jenkins = Jenkins.getInstance();
         ProxyConfiguration proxyConfig = null;
         if (jenkins != null) {
@@ -675,8 +675,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         Proxy proxy = Proxy.NO_PROXY;
 
         if (proxyConfig != null) {
-            URL hostURL = new URL(host);
-            proxy = proxyConfig.createProxy(hostURL.getHost());
+            URI hostURI = URI.create(host);
+            proxy = proxyConfig.createProxy(hostURI.getHost());
         }
 
         if (proxy.type() != Proxy.Type.DIRECT) {
