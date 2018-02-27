@@ -115,6 +115,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_REPOSITORY_PATH = API_BASE_PATH + "/projects/{owner}/repos/{repo}";
     private static final String API_DEFAULT_BRANCH_PATH = API_REPOSITORY_PATH + "/branches/default";
     private static final String API_BRANCHES_PATH = API_REPOSITORY_PATH + "/branches{?start,limit}";
+    private static final String API_TAGS_PATH = API_REPOSITORY_PATH + "/tags{?start,limit}";
     private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit}";
     private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}";
     private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path}{?at}";
@@ -409,9 +410,23 @@ public class BitbucketServerAPIClient implements BitbucketApi {
      */
     @Override
     @NonNull
+    public List<BitbucketServerBranch> getTags() throws IOException, InterruptedException {
+        return getServerBranches(API_TAGS_PATH);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @NonNull
     public List<BitbucketServerBranch> getBranches() throws IOException, InterruptedException {
+        return getServerBranches(API_BRANCHES_PATH);
+    }
+
+
+    private List<BitbucketServerBranch> getServerBranches(String apiPath) throws IOException, InterruptedException {
         UriTemplate template = UriTemplate
-                .fromTemplate(API_BRANCHES_PATH)
+                .fromTemplate(apiPath)
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
                 .set("start", 0)

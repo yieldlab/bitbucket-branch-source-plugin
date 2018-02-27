@@ -114,7 +114,11 @@ public class BitbucketSCMSourceRequest extends SCMSourceRequest {
      */
     @CheckForNull
     private Iterable<BitbucketBranch> branches;
-    // TODO private Iterable<BitbucketTag> tags;
+    /**
+     * The tag details or {@code null} if not {@link #isFetchTags()}.
+     */
+    @CheckForNull
+    private Iterable<BitbucketBranch> tags;
 
     /**
      * Constructor.
@@ -351,7 +355,6 @@ public class BitbucketSCMSourceRequest extends SCMSourceRequest {
     public final void setBranches(@CheckForNull Iterable<BitbucketBranch> branches) {
         this.branches = branches;
     }
-
     /**
      * Returns the branch details or an empty list if either the request did not specify to {@link #isFetchBranches()}
      * or if the branch details have not been provided by {@link #setBranches(Iterable)} yet.
@@ -363,7 +366,28 @@ public class BitbucketSCMSourceRequest extends SCMSourceRequest {
         return Util.fixNull(branches);
     }
 
-    // TODO Iterable<BitbucketTag> getTags() and setTags(...)
+
+
+     /**
+     * Provides the requests with the branch details.
+     *
+     * @param tags the tag details.
+     */
+    public final void setTags(@CheckForNull Iterable<BitbucketBranch> tags) {
+        this.tags = tags;
+    }
+
+     /**
+     * Returns the branch details or an empty list if either the request did not specify to {@link #isFetchBranches()}
+     * or if the branch details have not been provided by {@link #setBranches(Iterable)} yet.
+     *
+     * @return the branch details (may be empty)
+     */
+    @NonNull
+    public final Iterable<BitbucketBranch> getTags() {
+        return Util.fixNull(tags);
+    }
+
 
     /**
      * {@inheritDoc}

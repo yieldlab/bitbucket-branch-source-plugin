@@ -4,6 +4,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketCloudEndpoint;
 import java.util.Arrays;
 import java.util.Collections;
 import jenkins.model.Jenkins;
+import jenkins.plugins.git.traits.*;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
