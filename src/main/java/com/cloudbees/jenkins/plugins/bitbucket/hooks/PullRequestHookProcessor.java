@@ -205,7 +205,7 @@ public class PullRequestHookProcessor extends HookProcessor {
                                         src.getRepoOwner(),
                                         src.getRepository(),
                                         type,
-                                        branchName,
+                                        pull.getSource().getBranch().getName(),
                                         pull,
                                         headOrigin,
                                         strategy
