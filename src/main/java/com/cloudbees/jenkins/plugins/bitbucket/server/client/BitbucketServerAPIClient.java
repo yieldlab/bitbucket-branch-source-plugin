@@ -35,11 +35,15 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
+import com.cloudbees.jenkins.plugins.bitbucket.endpoints.AbstractBitbucketEndpoint;
+import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfiguration;
+import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketServerEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranches;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest.BitbucketServerPullRequest;
+import com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest.BitbucketServerPullRequestCanMerge;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest.BitbucketServerPullRequests;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerProject;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepositories;
@@ -119,6 +123,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_TAGS_PATH = API_REPOSITORY_PATH + "/tags{?start,limit}";
     private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit}";
     private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}";
+    private static final String API_PULL_REQUEST_MERGE_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}/merge";
     private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path*}{?at}";
     private static final String API_COMMITS_PATH = API_REPOSITORY_PATH + "/commits{/hash}";
     private static final String API_PROJECT_PATH = API_BASE_PATH + "/projects/{owner}";
@@ -289,12 +294,37 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
                 pullRequests.addAll(page.getValues());
             }
+
+            AbstractBitbucketEndpoint endpointConfig = BitbucketEndpointConfiguration.get().findEndpoint(baseURL);
+            if (endpointConfig instanceof BitbucketServerEndpoint && ((BitbucketServerEndpoint)endpointConfig).isCallCanMerge()) {
+                // This is required for Bitbucket Server to update the refs/pull-requests/* references
+                // See https://community.atlassian.com/t5/Bitbucket-questions/Change-pull-request-refs-after-Commit-instead-of-after-Approval/qaq-p/194702#M6829
+                for (BitbucketServerPullRequest pullRequest : pullRequests) {
+                    pullRequest.setCanMerge(getPullRequestCanMergeById(Integer.parseInt(pullRequest.getId())));
+                }
+            }
+            
             return pullRequests;
         } catch (IOException e) {
             throw new IOException("I/O error when accessing URL: " + url, e);
         }
     }
 
+    private boolean getPullRequestCanMergeById(@NonNull Integer id) throws IOException {
+        String url = UriTemplate
+                .fromTemplate(API_PULL_REQUEST_MERGE_PATH)
+                .set("owner", getUserCentricOwner())
+                .set("repo", repositoryName)
+                .set("id", id)
+                .expand();
+        String response = getRequest(url);
+        try {
+            return JsonParser.toJava(response, BitbucketServerPullRequestCanMerge.class).isCanMerge();
+        } catch (IOException e) {
+            throw new IOException("I/O error when accessing URL: " + url, e);
+        }
+    }
+    
     /**
      * {@inheritDoc}
      */
