@@ -35,7 +35,7 @@ public class UriResolverTest {
 
     @Test
     public void httpUriResolver() throws Exception {
-        BitbucketApi api = new BitbucketCloudApiClient("test", null, null);
+        BitbucketApi api = new BitbucketCloudApiClient(false, 0, 0, "test", null, null);
         assertEquals("https://bitbucket.org/user1/repo1.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.HTTP,
@@ -70,7 +70,7 @@ public class UriResolverTest {
 
     @Test
     public void sshUriResolver() throws Exception {
-        BitbucketApi api = new BitbucketCloudApiClient("test", null, null);
+        BitbucketApi api = new BitbucketCloudApiClient(false, 0, 0, "test", null, null);
         assertEquals("git@bitbucket.org:user1/repo1.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.SSH,
