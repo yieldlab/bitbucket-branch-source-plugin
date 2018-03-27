@@ -3,10 +3,10 @@
          xmlns:f="/lib/form">
   <f:optionalBlock title="${%Enable cache}" field="enableCache" inline="true">
     <f:entry title="${%How long to cache team, in minutes}" field="teamCacheDuration">
-      <f:textbox default="360" />
+      <f:number default="360" />
     </f:entry>
     <f:entry title="${%How long to cache repositories, in minutes}" field="repositoriesCacheDuration">
-      <f:textbox default="180" />
+      <f:number default="180" />
     </f:entry>
     <f:section title="${%Statistics}">
       <j:forEach var="stat" items="${descriptor.stats}">
