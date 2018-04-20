@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2017, CloudBees, Inc.
+ * Copyright (c) 2018, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * A {@link Discovery} trait for bitbucket that will discover tags on the repository.
  *
- * @since 2.2.0
+ * @since 2.2.11
  */
 public class TagDiscoveryTrait extends SCMSourceTrait {
 
@@ -117,7 +117,7 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * Trusts branches from the origin repository.
+     * Trusts tags from the origin repository.
      */
     public static class TagSCMHeadAuthority  extends SCMHeadAuthority<SCMSourceRequest, BitbucketTagSCMHead, GitTagSCMRevision> {
         /**
@@ -138,7 +138,7 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
              */
             @Override
             public String getDisplayName() {
-                return "Trust origin branches";
+                return "Trust origin tags";
             }
 
             /**

@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2018, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,49 +35,46 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 /**
  * {@link SCMHead} for a BitBucket tags.
  *
- * @since 2.0.0
+ * @since 2.2.11
  */
 public class BitbucketTagSCMHead extends GitTagSCMHead implements TagSCMHead {
 
     private static final long serialVersionUID = 1L;
 
     /**
-     * Cache of the repository type. Will only be {@code null} for data loaded from pre-2.1.0 releases
+     * Cache of the repository type.
      *
-     * @since 2.1.0
+     * @since 2.2.11
      */
     // The repository type should be immutable for any SCMSource.
     @CheckForNull
     private final BitbucketRepositoryType repositoryType;
 
-        /**
+    /**
      * Constructor.
      *
-     * @param branchName     the branch name
+     * @param tagName        the tag name
      * @param timestamp      the timestamp of tag
      */
-    public BitbucketTagSCMHead(@NonNull String branchName, long timestamp) {
-        this(branchName, timestamp, BitbucketRepositoryType.GIT);
+    public BitbucketTagSCMHead(@NonNull String tagName, long timestamp) {
+        this(tagName, timestamp, BitbucketRepositoryType.GIT);
     }
 
     /**
-
-
-    /**
      * Constructor.
      *
-     * @param branchName     the branch name
+     * @param tagName        the tag name
      * @param timestamp      the timestamp of tag
      * @param repositoryType the repository type.
      */
-    public BitbucketTagSCMHead(String branchName, long timestamp, BitbucketRepositoryType repositoryType) {
-        super(branchName, timestamp);
+    public BitbucketTagSCMHead(String tagName, long timestamp, BitbucketRepositoryType repositoryType) {
+        super(tagName, timestamp);
         this.repositoryType = repositoryType;
     }
 
     /**
      * Gets the repository type.
-     * @return the repository type or {@code null} if this is a legacy branch instance.
+     * @return the repository type or {@code null}
      */
     @CheckForNull
     public BitbucketRepositoryType getRepositoryType() {
