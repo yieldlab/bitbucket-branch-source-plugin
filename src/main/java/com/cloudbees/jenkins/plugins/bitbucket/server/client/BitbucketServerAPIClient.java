@@ -47,6 +47,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.Bitbucke
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerWebhooks;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
+import com.damnhandy.uri.template.impl.Operator;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -117,7 +118,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_BRANCHES_PATH = API_REPOSITORY_PATH + "/branches{?start,limit}";
     private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit}";
     private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}";
-    private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path}{?at}";
+    private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path*}{?at}";
     private static final String API_COMMITS_PATH = API_REPOSITORY_PATH + "/commits{/hash}";
     private static final String API_PROJECT_PATH = API_BASE_PATH + "/projects/{owner}";
     private static final String API_COMMIT_COMMENT_PATH = API_REPOSITORY_PATH + "/commits{/hash}/comments";
@@ -377,7 +378,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH)
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", path)
+                .set("path", path.split(Operator.PATH.getSeparator()))
                 .set("at", branchOrHash)
                 .expand();
         int status = getRequestStatus(url);
@@ -811,7 +812,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", directory.getPath())
+                .set("path", directory.getPath().split(Operator.PATH.getSeparator()))
                 .set("at", directory.getRef())
                 .set("start", start)
                 .set("limit", 500);
@@ -859,7 +860,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", file.getPath())
+                .set("path", file.getPath().split(Operator.PATH.getSeparator()))
                 .set("at", file.getRef())
                 .set("start", start)
                 .set("limit", 500);
