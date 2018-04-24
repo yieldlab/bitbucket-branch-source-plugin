@@ -673,9 +673,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             proxyConfig = jenkins.proxy;
         }
 
-        Proxy proxy = Proxy.NO_PROXY;
+        final Proxy proxy;
+
         if (proxyConfig != null) {
-            proxy = proxyConfig.createProxy(host);
+            URI hostURI = URI.create(host);
+            proxy = proxyConfig.createProxy(hostURI.getHost());
+        } else {
+             proxy = Proxy.NO_PROXY;
         }
 
         if (proxy.type() != Proxy.Type.DIRECT) {
