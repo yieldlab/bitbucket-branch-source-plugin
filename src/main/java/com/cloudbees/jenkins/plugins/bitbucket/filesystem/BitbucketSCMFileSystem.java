@@ -63,9 +63,9 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
     }
 
     /**
+     * Return timestamp of last commit or of tag if its annotated tag.
      *
-     * @return Return timestamp of last commit or of tag if its annotated tag
-     * @throws IOException
+     * @return timestamp of last commit or of tag if its annotated tag
      */
     @Override
     public long lastModified() throws IOException {
