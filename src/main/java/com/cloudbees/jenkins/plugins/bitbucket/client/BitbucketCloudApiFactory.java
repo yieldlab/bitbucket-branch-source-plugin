@@ -32,7 +32,7 @@ public class BitbucketCloudApiFactory extends BitbucketApiFactory {
             repositoriesCacheDuration = ((BitbucketCloudEndpoint) endpoint).getRepositoriesCacheDuration();
         }
         return new BitbucketCloudApiClient(
-                enableCache,teamCacheDuration,repositoriesCacheDuration,
+                enableCache, teamCacheDuration, repositoriesCacheDuration,
                 owner, repository, credentials);
     }
 }
