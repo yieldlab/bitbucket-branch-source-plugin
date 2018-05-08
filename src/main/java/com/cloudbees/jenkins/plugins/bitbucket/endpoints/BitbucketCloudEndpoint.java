@@ -147,10 +147,6 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
             return Messages.BitbucketCloudEndpoint_displayName();
         }
 
-        public List<String> getStats() {
-            return BitbucketCloudApiClient.stats();
-        }
-
         public FormValidation doClear() {
             BitbucketCloudApiClient.clearCaches();
             return FormValidation.ok("done");

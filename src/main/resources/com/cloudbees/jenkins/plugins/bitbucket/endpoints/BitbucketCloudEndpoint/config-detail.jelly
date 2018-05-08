@@ -8,12 +8,7 @@
     <f:entry title="${%How long to cache repositories, in minutes}" field="repositoriesCacheDuration">
       <f:number default="180" />
     </f:entry>
-    <f:section title="${%Statistics}">
-      <j:forEach var="stat" items="${descriptor.stats}">
-        <f:description>${stat}</f:description>
-      </j:forEach>
-      <f:validateButton title="${%Clear}" method="clear" />
-    </f:section>
+    <f:validateButton title="${%Clear caches}" method="clear" />
   </f:optionalBlock>
   <f:invisibleEntry>
     <f:textbox field="serverUrl"/>

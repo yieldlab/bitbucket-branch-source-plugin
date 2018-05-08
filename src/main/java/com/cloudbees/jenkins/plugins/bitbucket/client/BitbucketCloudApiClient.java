@@ -137,13 +137,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     private transient BitbucketRepository cachedRepository;
     private transient String cachedDefaultBranch;
 
-    public static List<String> stats() {
-        List<String> stats = new ArrayList<>();
-        stats.add("Team: " + cachedTeam.stats().toString());
-        stats.add("Repositories : " + cachedRepositories.stats().toString());
-        return stats;
-    }
-
     public static void clearCaches() {
         cachedTeam.evictAll();
         cachedRepositories.evictAll();
