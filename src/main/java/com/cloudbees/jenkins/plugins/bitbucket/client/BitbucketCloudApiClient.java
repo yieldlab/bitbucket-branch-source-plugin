@@ -71,12 +71,16 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
+
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
@@ -122,17 +126,24 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     private final String owner;
     private final String repositoryName;
     private final UsernamePasswordCredentials credentials;
+    private final boolean enableCache;
     static {
         connectionManager.setDefaultMaxPerRoute(20);
         connectionManager.setMaxTotal(22);
         connectionManager.setSocketConfig(API_HOST, SocketConfig.custom().setSoTimeout(60 * 1000).build());
     }
-    private static Cache<String, BitbucketTeam> cachedTeam = new Cache(6, TimeUnit.HOURS);
-    private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, TimeUnit.HOURS);
+    private static Cache<String, BitbucketTeam> cachedTeam = new Cache(6, HOURS);
+    private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, HOURS);
     private transient BitbucketRepository cachedRepository;
     private transient String cachedDefaultBranch;
 
-    public BitbucketCloudApiClient(String owner, String repositoryName, StandardUsernamePasswordCredentials creds) {
+    public static void clearCaches() {
+        cachedTeam.evictAll();
+        cachedRepositories.evictAll();
+    }
+
+    public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuraction,
+            String owner, String repositoryName, StandardUsernamePasswordCredentials creds) {
         if (creds != null) {
             this.credentials = new UsernamePasswordCredentials(creds.getUsername(), Secret.toString(creds.getPassword()));
         } else {
@@ -140,6 +151,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
         this.owner = owner;
         this.repositoryName = repositoryName;
+        this.enableCache = enableCache;
+        if (enableCache) {
+            cachedTeam.setExpireDuration(teamCacheDuration, MINUTES);
+            cachedRepositories.setExpireDuration(repositoriesCacheDuraction, MINUTES);
+        }
 
         // Create Http client
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
@@ -298,7 +314,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         if (repositoryName == null) {
             throw new UnsupportedOperationException("Cannot get a repository from an API instance that is not associated with a repository");
         }
-        if (cachedRepository == null) {
+        if (!enableCache || cachedRepository == null) {
             String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE)
                     .set("owner", owner)
                     .set("repo", repositoryName)
@@ -354,7 +370,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @CheckForNull
     @Override
     public String getDefaultBranch() throws IOException, InterruptedException {
-        if (cachedDefaultBranch == null) {
+        if (!enableCache || cachedDefaultBranch == null) {
             String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/{?fields}")
                     .set("owner", owner)
                     .set("repo", repositoryName)
@@ -565,21 +581,28 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         final String url = UriTemplate.fromTemplate(V2_TEAMS_API_BASE_URL + "{/owner}")
                 .set("owner", owner)
                 .expand();
-        try {
-            return cachedTeam.get(owner, new Callable<BitbucketTeam>() {
-                @Override
-                public BitbucketTeam call() throws Exception {
-                    try {
-                        String response = getRequest(url);
-                        return JsonParser.toJava(response, BitbucketCloudTeam.class);
-                    } catch (FileNotFoundException e) {
-                        return null;
-                    } catch (IOException e) {
-                        throw new IOException("I/O error when parsing response from URL: " + url, e);
-                    }
+
+        Callable<BitbucketTeam> request = new Callable<BitbucketTeam>() {
+            @Override
+            public BitbucketTeam call() throws Exception {
+                try {
+                    String response = getRequest(url);
+                    return JsonParser.toJava(response, BitbucketCloudTeam.class);
+                } catch (FileNotFoundException e) {
+                    return null;
+                } catch (IOException e) {
+                    throw new IOException("I/O error when parsing response from URL: " + url, e);
                 }
-            });
-        } catch (ExecutionException ex) {
+            }
+        };
+        
+        try {
+            if (enableCache) {
+                return cachedTeam.get(owner, request);
+            } else {
+                return request.call();
+            }
+        } catch (Exception ex) {
             return null;
         }
     }
@@ -601,34 +624,39 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             template.set("role", role.getId());
             cacheKey.append("::").append(role.getId());
         }
+        Callable<List<BitbucketCloudRepository>> request = new Callable<List<BitbucketCloudRepository>>() {
+            @Override
+            public List<BitbucketCloudRepository> call() throws Exception {
+                List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
+                Integer pageNumber = 1;
+                String url, response;
+                PaginatedBitbucketRepository page;
+                do {
+                    response = getRequest(url = template.set("page", pageNumber).expand());
+                    try {
+                        page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
+                        repositories.addAll(page.getValues());
+                    } catch (IOException e) {
+                        throw new IOException("I/O error when parsing response from URL: " + url, e);
+                    }
+                    pageNumber++;
+                } while (page.getNext() != null);
+                Collections.sort(repositories, new Comparator<BitbucketCloudRepository>() {
+                    @Override
+                    public int compare(BitbucketCloudRepository o1, BitbucketCloudRepository o2) {
+                        return o1.getRepositoryName().compareTo(o2.getRepositoryName());
+                    }
+                });
+                return repositories;
+            }
+        };
         try {
-            return cachedRepositories.get(cacheKey.toString(), new Callable<List<BitbucketCloudRepository>>() {
-                @Override
-                public List<BitbucketCloudRepository> call() throws Exception {
-                    List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
-                    Integer pageNumber = 1;
-                    String url, response;
-                    PaginatedBitbucketRepository page;
-                    do {
-                        response = getRequest(url = template.set("page", pageNumber).expand());
-                        try {
-                            page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
-                            repositories.addAll(page.getValues());
-                        } catch (IOException e) {
-                            throw new IOException("I/O error when parsing response from URL: " + url, e);
-                        }
-                        pageNumber++;
-                    } while (page.getNext() != null);
-                    Collections.sort(repositories, new Comparator<BitbucketCloudRepository>() {
-                        @Override
-                        public int compare(BitbucketCloudRepository o1, BitbucketCloudRepository o2) {
-                            return o1.getRepositoryName().compareTo(o2.getRepositoryName());
-                        }
-                    });
-                    return repositories;
-                }
-            });
-        } catch (ExecutionException ex) {
+            if (enableCache) {
+                return cachedRepositories.get(cacheKey.toString(), request);
+            } else {
+                return request.call();
+            }
+        } catch (Exception ex) {
             throw new IOException("Error while loading repositories from cache", ex);
         }
     }
