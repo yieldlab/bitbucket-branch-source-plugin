@@ -454,7 +454,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     */
     @Override
     public void registerCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        putRequest(
+        postRequest(
             UriTemplate
                 .fromTemplate(API_WEBHOOKS_PATH)
                 .set("owner", getUserCentricOwner())
@@ -466,7 +466,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     @Override
     public void updateCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        postRequest(
+        putRequest(
             UriTemplate
                 .fromTemplate(API_WEBHOOK_PATH)
                 .set("owner", getUserCentricOwner())
