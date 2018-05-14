@@ -26,6 +26,7 @@
 package com.cloudbees.jenkins.plugins.bitbucket.filesystem;
 
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource;
+import com.cloudbees.jenkins.plugins.bitbucket.BitbucketTagSCMHead;
 import com.cloudbees.jenkins.plugins.bitbucket.BranchSCMHead;
 import com.cloudbees.jenkins.plugins.bitbucket.PullRequestSCMHead;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
@@ -75,7 +76,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
     @NonNull
     @Override
     public SCMFile getRoot() {
-        return new BitbucketSCMFile(this, api, ref);
+        SCMRevision revision = getRevision();
+        return new BitbucketSCMFile(this, api, ref, revision == null ? null : revision.toString());
     }
 
     @Extension
@@ -137,6 +139,8 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
                     return new BitbucketSCMFileSystem(apiClient, pr.getOriginName(), rev);
                 }
                 return null; // TODO support merge revisions somehow
+            } else if (head instanceof BitbucketTagSCMHead) {
+                 ref = "tags/" + head.getName();
             } else {
                 return null;
             }

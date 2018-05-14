@@ -143,6 +143,16 @@ public interface BitbucketApi {
     @NonNull
     List<? extends BitbucketBranch> getBranches() throws IOException, InterruptedException;
 
+     /**
+     * Returns the tags in the repository.
+     *
+     * @return the list of tags in the repository.
+     * @throws IOException if there was a network communications error.
+     * @throws InterruptedException if interrupted while waiting on remote communications.
+     */
+    @NonNull
+    List<? extends BitbucketBranch> getTags() throws IOException, InterruptedException;
+
     /**
      * Resolve the commit object given its hash.
      *
@@ -173,6 +183,15 @@ public interface BitbucketApi {
      * @throws InterruptedException if interrupted while waiting on remote communications.
      */
     void registerCommitWebHook(@NonNull BitbucketWebHook hook) throws IOException, InterruptedException;
+
+    /**
+     * Update a webhook on the repository.
+     *
+     * @param hook the webhook object
+     * @throws IOException if there was a network communications error.
+     * @throws InterruptedException if interrupted while waiting on remote communications.
+     */
+    void updateCommitWebHook(@NonNull BitbucketWebHook hook) throws IOException, InterruptedException;
 
     /**
      * Remove the webhook (ID field required) from the repository.

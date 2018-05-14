@@ -180,7 +180,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         /**
          * Populates the strategy options.
          *
-         * @return the stategy options.
+         * @return the strategy options.
          */
         @NonNull
         @Restricted(NoExternalUse.class)

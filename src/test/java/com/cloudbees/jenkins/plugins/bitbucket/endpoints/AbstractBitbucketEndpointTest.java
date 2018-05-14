@@ -28,6 +28,7 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import java.util.Collections;
@@ -119,7 +120,11 @@ public class AbstractBitbucketEndpointTest {
         @NonNull
         @Override
         public String getRepositoryUrl(@NonNull String repoOwner, @NonNull String repository) {
-            return "http://dummy.example.com/" + Util.rawEncode(repoOwner) + "/" + Util.rawEncode(repository);
+            return UriTemplate
+                    .fromTemplate("http://dummy.example.com{/owner,repo}")
+                    .set("owner", repoOwner)
+                    .set("repo", repository)
+                    .expand();
         }
     }
 

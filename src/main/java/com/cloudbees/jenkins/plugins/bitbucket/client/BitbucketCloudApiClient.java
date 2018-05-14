@@ -2,6 +2,7 @@
  * The MIT License
  *
  * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2017-2018, bguerin
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,6 +51,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.repository.PaginatedBitbuc
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -64,43 +66,71 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.NameValuePair;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.methods.DeleteMethod;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.HeadMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.SocketConfig;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.type.TypeReference;
-import static com.cloudbees.jenkins.plugins.bitbucket.Utils.encodePath;
 
 public class BitbucketCloudApiClient implements BitbucketApi {
     private static final Logger LOGGER = Logger.getLogger(BitbucketCloudApiClient.class.getName());
-    private static final String V2_API_BASE_URL = "https://api.bitbucket.org/2.0/repositories/";
-    private static final String V2_TEAMS_API_BASE_URL = "https://api.bitbucket.org/2.0/teams/";
+    private static final HttpHost API_HOST = HttpHost.create("https://api.bitbucket.org");
+    private static final String V2_API_BASE_URL = "https://api.bitbucket.org/2.0/repositories";
+    private static final String V2_TEAMS_API_BASE_URL = "https://api.bitbucket.org/2.0/teams";
+    private static final String REPO_URL_TEMPLATE = V2_API_BASE_URL + "{/owner,repo}";
     private static final int API_RATE_LIMIT_CODE = 429;
-    private HttpClient client;
-    private static final MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
+    private static final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+    private CloseableHttpClient client;
+    private HttpClientContext context;
     private final String owner;
     private final String repositoryName;
     private final UsernamePasswordCredentials credentials;
     static {
-        connectionManager.getParams().setDefaultMaxConnectionsPerHost(20);
-        connectionManager.getParams().setMaxTotalConnections(22);
+        connectionManager.setDefaultMaxPerRoute(20);
+        connectionManager.setMaxTotal(22);
+        connectionManager.setSocketConfig(API_HOST, SocketConfig.custom().setSoTimeout(60 * 1000).build());
     }
+    private static Cache<String, BitbucketTeam> cachedTeam = new Cache(6, TimeUnit.HOURS);
+    private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, TimeUnit.HOURS);
+    private transient BitbucketRepository cachedRepository;
+    private transient String cachedDefaultBranch;
 
     public BitbucketCloudApiClient(String owner, String repositoryName, StandardUsernamePasswordCredentials creds) {
         if (creds != null) {
@@ -112,19 +142,32 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         this.repositoryName = repositoryName;
 
         // Create Http client
-        HttpClient client = new HttpClient(connectionManager);
-        client.getParams().setConnectionManagerTimeout(10 * 1000);
-        client.getParams().setSoTimeout(60 * 1000);
+        HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+        httpClientBuilder.setConnectionManager(connectionManager);
+        httpClientBuilder.setConnectionManagerShared(true);
 
         if (credentials != null) {
-            client.getState().setCredentials(AuthScope.ANY, credentials);
-            client.getParams().setAuthenticationPreemptive(true);
-        } else {
-            client.getParams().setAuthenticationPreemptive(false);
+            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY, credentials);
+            AuthCache authCache = new BasicAuthCache();
+            authCache.put(API_HOST, new BasicScheme());
+            context = HttpClientContext.create();
+            context.setCredentialsProvider(credentialsProvider);
+            context.setAuthCache(authCache);
         }
 
-        setClientProxyParams("bitbucket.org", client);
-        this.client = client;
+        setClientProxyParams("bitbucket.org", httpClientBuilder);
+
+        this.client = httpClientBuilder.build();
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        if (client != null) {
+            client.close();
+        }
+
+        super.finalize();
     }
 
     /**
@@ -194,12 +237,16 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @NonNull
     @Override
     public List<BitbucketPullRequestValue> getPullRequests() throws InterruptedException, IOException {
-        String urlTemplate = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/pullrequests?page=%d&pagelen=50";
-        String url;
-
         List<BitbucketPullRequestValue> pullRequests = new ArrayList<BitbucketPullRequestValue>();
         int pageNumber = 1;
-        String response = getRequest(url = String.format(urlTemplate, pageNumber));
+        UriTemplate template = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/pullrequests{?page,pagelen}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("page", pageNumber)
+                .set("pagelen", 50);
+        String url = template.expand();
+
+        String response = getRequest(url);
         BitbucketPullRequests page;
         try {
             page = JsonParser.toJava(response, BitbucketPullRequests.class);
@@ -212,7 +259,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 throw new InterruptedException();
             }
             pageNumber++;
-            response = getRequest(url = String.format(urlTemplate, pageNumber));
+            response = getRequest(url = template.set("page", pageNumber).expand());
             try {
                 page = JsonParser.toJava(response, BitbucketPullRequests.class);
             } catch (IOException e) {
@@ -229,7 +276,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     @NonNull
     public BitbucketPullRequest getPullRequestById(@NonNull Integer id) throws IOException, InterruptedException {
-        String url = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/pullrequests/" + id;
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/pullrequests{/id}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("id", id)
+                .expand();
         String response = getRequest(url);
         try {
             return JsonParser.toJava(response, BitbucketPullRequestValue.class);
@@ -247,13 +298,19 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         if (repositoryName == null) {
             throw new UnsupportedOperationException("Cannot get a repository from an API instance that is not associated with a repository");
         }
-        String url = V2_API_BASE_URL + owner + "/" + repositoryName;
-        String response = getRequest(url);
-        try {
-            return JsonParser.toJava(response, BitbucketCloudRepository.class);
-        } catch (IOException e) {
-            throw new IOException("I/O error when parsing response from URL: " + url, e);
+        if (cachedRepository == null) {
+            String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE)
+                    .set("owner", owner)
+                    .set("repo", repositoryName)
+                    .expand();
+            String response = getRequest(url);
+            try {
+                cachedRepository =  JsonParser.toJava(response, BitbucketCloudRepository.class);
+            } catch (IOException e) {
+                throw new IOException("I/O error when parsing response from URL: " + url, e);
+            }
         }
+        return cachedRepository;
     }
 
     /**
@@ -261,10 +318,13 @@ public class BitbucketCloudApiClient implements BitbucketApi {
      */
     @Override
     public void postCommitComment(@NonNull String hash, @NonNull String comment) throws IOException, InterruptedException {
-        String path = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/commit/" + hash + "/build";
+        String path = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/commit{/hash}/build")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("hash", hash)
+                .expand();
         try {
-            NameValuePair content = new NameValuePair("content", comment);
-            postRequest(path, new NameValuePair[]{ content });
+            postRequest(path, Collections.singletonList(new BasicNameValuePair("content", comment)));
         } catch (UnsupportedEncodingException e) {
             throw e;
         } catch (IOException e) {
@@ -278,17 +338,13 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     public boolean checkPathExists(@NonNull String branchOrHash, @NonNull String path)
             throws IOException, InterruptedException {
-        StringBuilder url = new StringBuilder(V2_API_BASE_URL);
-        url.append(owner);
-        url.append('/');
-        url.append(repositoryName);
-        url.append("/src/");
-        url.append(Util.rawEncode(branchOrHash));
-        for (String segment : StringUtils.split(path, "/")) {
-            url.append('/');
-            url.append(Util.rawEncode(segment));
-        }
-        int status = headRequestStatus(url.toString());
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash,path}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("branchOrHash", branchOrHash)
+                .set("path", path)
+                .expand();
+        int status = headRequestStatus(url);
         return status == HttpStatus.SC_OK;
     }
 
@@ -298,21 +354,27 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @CheckForNull
     @Override
     public String getDefaultBranch() throws IOException, InterruptedException {
-        String url = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/?fields=mainbranch.name";
-        String response;
-        try {
-            response = getRequest(url);
-        } catch (FileNotFoundException e) {
-            LOGGER.log(Level.FINE, "Could not find default branch for {0}/{1}",
-                    new Object[]{this.owner, this.repositoryName});
-            return null;
+        if (cachedDefaultBranch == null) {
+            String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/{?fields}")
+                    .set("owner", owner)
+                    .set("repo", repositoryName)
+                    .set("fields", "mainbranch.name")
+                    .expand();
+            String response;
+            try {
+                response = getRequest(url);
+            } catch (FileNotFoundException e) {
+                LOGGER.log(Level.FINE, "Could not find default branch for {0}/{1}",
+                        new Object[]{this.owner, this.repositoryName});
+                return null;
+            }
+            Map resp = JsonParser.toJava(response, Map.class);
+            Map mainbranch = (Map) resp.get("mainbranch");
+            if (mainbranch != null) {
+                cachedDefaultBranch = (String) mainbranch.get("name");
+            }
         }
-        Map resp = JsonParser.toJava(response, Map.class);
-        Map mainbranch = (Map) resp.get("mainbranch");
-        if (mainbranch != null) {
-            return (String) mainbranch.get("name");
-        }
-        return null;
+        return cachedDefaultBranch;
     }
 
     /**
@@ -320,8 +382,23 @@ public class BitbucketCloudApiClient implements BitbucketApi {
      */
     @NonNull
     @Override
+    public List<BitbucketCloudBranch> getTags() throws IOException, InterruptedException {
+        return getBranchesByRef("/refs/tags");
+    }
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
     public List<BitbucketCloudBranch> getBranches() throws IOException, InterruptedException {
-        String url = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/refs/branches";
+        return getBranchesByRef("/refs/branches");
+    }
+
+    public List<BitbucketCloudBranch> getBranchesByRef(String nodePath) throws IOException, InterruptedException {
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + nodePath)
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .expand();
         String response = getRequest(url);
         try {
             return getAllBranches(response);
@@ -336,7 +413,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     @CheckForNull
     public BitbucketCommit resolveCommit(@NonNull String hash) throws IOException, InterruptedException {
-        String url = V2_API_BASE_URL + owner + "/" + repositoryName + "/commit/" + hash;
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/commit/{hash}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("hash", hash)
+                .expand();
         String response;
         try {
             response = getRequest(url);
@@ -356,8 +437,13 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @NonNull
     @Override
     public String resolveSourceFullHash(@NonNull BitbucketPullRequest pull) throws IOException, InterruptedException {
-        String url = V2_API_BASE_URL + owner + "/" + repositoryName + "/pullrequests/" + pull.getId()
-                + "/commits?fields=values.hash&pagelen=1";
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/pullrequests/{pullId}/commits{?fields,pagelen}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("pullId", pull.getId())
+                .set("fields", "values.hash")
+                .set("pagelen", 1)
+                .expand();
         String response = getRequest(url);
         try {
             BitbucketPullRequestCommits commits = JsonParser.toJava(response, BitbucketPullRequestCommits.class);
@@ -375,7 +461,23 @@ public class BitbucketCloudApiClient implements BitbucketApi {
      */
     @Override
     public void registerCommitWebHook(@NonNull BitbucketWebHook hook) throws IOException, InterruptedException {
-        postRequest(V2_API_BASE_URL + owner + "/" + repositoryName + "/hooks", JsonParser.toJson(hook));
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/hooks")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .expand();
+        postRequest(url, JsonParser.toJson(hook));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateCommitWebHook(@NonNull BitbucketWebHook hook) throws IOException, InterruptedException {
+        String url = UriTemplate
+                .fromTemplate(REPO_URL_TEMPLATE + "/hooks/{hook}")
+                .set("hook", hook.getUuid())
+                .expand();
+        putRequest(url, JsonParser.toJson(hook));
     }
 
     /**
@@ -386,7 +488,12 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         if (StringUtils.isBlank(hook.getUuid())) {
             throw new BitbucketException("Hook UUID required");
         }
-        deleteRequest(V2_API_BASE_URL + owner + "/" + repositoryName + "/hooks/" + Util.rawEncode(hook.getUuid()));
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/hooks/{uuid}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("uuid", hook.getUuid())
+                .expand();
+        deleteRequest(url);
     }
 
     /**
@@ -395,12 +502,16 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @NonNull
     @Override
     public List<BitbucketRepositoryHook> getWebHooks() throws IOException, InterruptedException {
-        String urlTemplate = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/hooks?page=%d&pagelen=50";
-        String url = urlTemplate;
+        List<BitbucketRepositoryHook> repositoryHooks = new ArrayList<BitbucketRepositoryHook>();
+        int pageNumber = 1;
+        UriTemplate template = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/hooks{?page,pagelen}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("page", pageNumber)
+                .set("pagelen", 50);
+        String url = template.expand();
         try {
-            List<BitbucketRepositoryHook> repositoryHooks = new ArrayList<BitbucketRepositoryHook>();
-            int pageNumber = 1;
-            String response = getRequest(url = String.format(urlTemplate, pageNumber));
+            String response = getRequest(url);
             BitbucketRepositoryHooks page = parsePaginatedRepositoryHooks(response);
             repositoryHooks.addAll(page.getValues());
             while (page.getNext() != null) {
@@ -408,7 +519,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                     throw new InterruptedException();
                 }
                 pageNumber++;
-                response = getRequest(url = String.format(urlTemplate, pageNumber));
+                response = getRequest(url = template.set("page", pageNumber).expand());
                 page = parsePaginatedRepositoryHooks(response);
                 repositoryHooks.addAll(page.getValues());
             }
@@ -423,9 +534,12 @@ public class BitbucketCloudApiClient implements BitbucketApi {
      */
     @Override
     public void postBuildStatus(@NonNull BitbucketBuildStatus status) throws IOException, InterruptedException {
-        String path = V2_API_BASE_URL + this.owner + "/" + this.repositoryName + "/commit/" + status.getHash()
-                + "/statuses/build";
-        postRequest(path, JsonParser.toJson(status));
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/commit/{hash}/statuses/build")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("hash", status.getHash())
+                .expand();
+        postRequest(url, JsonParser.toJson(status));
     }
 
     /**
@@ -448,53 +562,75 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     @CheckForNull
     public BitbucketTeam getTeam() throws IOException, InterruptedException {
+        final String url = UriTemplate.fromTemplate(V2_TEAMS_API_BASE_URL + "{/owner}")
+                .set("owner", owner)
+                .expand();
         try {
-            String response = getRequest(V2_TEAMS_API_BASE_URL + owner);
-            return JsonParser.toJava(response, BitbucketCloudTeam.class);
-        } catch (FileNotFoundException e) {
+            return cachedTeam.get(owner, new Callable<BitbucketTeam>() {
+                @Override
+                public BitbucketTeam call() throws Exception {
+                    try {
+                        String response = getRequest(url);
+                        return JsonParser.toJava(response, BitbucketCloudTeam.class);
+                    } catch (FileNotFoundException e) {
+                        return null;
+                    } catch (IOException e) {
+                        throw new IOException("I/O error when parsing response from URL: " + url, e);
+                    }
+                }
+            });
+        } catch (ExecutionException ex) {
             return null;
-        } catch (IOException e) {
-            throw new IOException("I/O error when parsing response from URL: " + V2_TEAMS_API_BASE_URL + owner, e);
-
         }
     }
 
     /**
      * The role parameter only makes sense when the request is authenticated, so
-     * if there is no auth information ({@link #credentials}) the role will be omited.
+     * if there is no auth information ({@link #credentials}) the role will be omitted.
      */
     @NonNull
     @Override
     public List<BitbucketCloudRepository> getRepositories(@CheckForNull UserRoleInRepository role)
             throws InterruptedException, IOException {
-        String urlTemplate;
+        StringBuilder cacheKey = new StringBuilder();
+        cacheKey.append(owner).append("::").append(credentials.getUserName());
+        final UriTemplate template = UriTemplate.fromTemplate(V2_API_BASE_URL + "{/owner}{?role,page,pagelen}")
+                .set("owner", owner)
+                .set("pagelen", 50);
         if (role != null && getLogin() != null) {
-            urlTemplate = V2_API_BASE_URL + owner + "?role=" + role.getId() + "&page=%s&pagelen=50";
-        } else {
-            urlTemplate = V2_API_BASE_URL + owner + "?page=%s&pagelen=50";
+            template.set("role", role.getId());
+            cacheKey.append("::").append(role.getId());
         }
-        String url;
-        List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
-        Integer pageNumber = 1;
-        String response = getRequest(url = String.format(urlTemplate, pageNumber.toString()));
-        PaginatedBitbucketRepository page;
         try {
-            page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
-            repositories.addAll(page.getValues());
-        } catch (IOException e) {
-            throw new IOException("I/O error when parsing response from URL: " + url, e);
+            return cachedRepositories.get(cacheKey.toString(), new Callable<List<BitbucketCloudRepository>>() {
+                @Override
+                public List<BitbucketCloudRepository> call() throws Exception {
+                    List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
+                    Integer pageNumber = 1;
+                    String url, response;
+                    PaginatedBitbucketRepository page;
+                    do {
+                        response = getRequest(url = template.set("page", pageNumber).expand());
+                        try {
+                            page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
+                            repositories.addAll(page.getValues());
+                        } catch (IOException e) {
+                            throw new IOException("I/O error when parsing response from URL: " + url, e);
+                        }
+                        pageNumber++;
+                    } while (page.getNext() != null);
+                    Collections.sort(repositories, new Comparator<BitbucketCloudRepository>() {
+                        @Override
+                        public int compare(BitbucketCloudRepository o1, BitbucketCloudRepository o2) {
+                            return o1.getRepositoryName().compareTo(o2.getRepositoryName());
+                        }
+                    });
+                    return repositories;
+                }
+            });
+        } catch (ExecutionException ex) {
+            throw new IOException("Error while loading repositories from cache", ex);
         }
-        while (page.getNext() != null) {
-                pageNumber++;
-                response = getRequest(url = String.format(urlTemplate, pageNumber.toString()));
-            try {
-                page = JsonParser.toJava(response, PaginatedBitbucketRepository.class);
-                repositories.addAll(page.getValues());
-            } catch (IOException e) {
-                throw new IOException("I/O error when parsing response from URL: " + url, e);
-            }
-        }
-        return repositories;
     }
 
     /** {@inheritDoc} */
@@ -504,7 +640,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return getRepositories(null);
     }
 
-    private static void setClientProxyParams(String host, HttpClient client) {
+    private void setClientProxyParams(String host, HttpClientBuilder builder) {
         Jenkins jenkins = Jenkins.getInstance();
         ProxyConfiguration proxyConfig = null;
         if (jenkins != null) {
@@ -519,20 +655,32 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         if (proxy.type() != Proxy.Type.DIRECT) {
             final InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
             LOGGER.fine("Jenkins proxy: " + proxy.address());
-            client.getHostConfiguration().setProxy(proxyAddress.getHostString(), proxyAddress.getPort());
+            builder.setProxy(new HttpHost(proxyAddress.getHostName(), proxyAddress.getPort()));
             String username = proxyConfig.getUserName();
             String password = proxyConfig.getPassword();
             if (username != null && !"".equals(username.trim())) {
                 LOGGER.fine("Using proxy authentication (user=" + username + ")");
-                client.getState().setProxyCredentials(AuthScope.ANY,
-                        new UsernamePasswordCredentials(username, password));
+                CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
+                AuthCache authCache = new BasicAuthCache();
+                authCache.put(HttpHost.create(proxyAddress.getHostName()), new BasicScheme());
+                context = HttpClientContext.create();
+                context.setCredentialsProvider(credentialsProvider);
+                context.setAuthCache(authCache);
             }
         }
     }
 
-    private int executeMethod(HttpMethod httpMethod) throws InterruptedException, IOException {
-        int status = client.executeMethod(httpMethod);
-        while (status == API_RATE_LIMIT_CODE) {
+    private CloseableHttpResponse executeMethod(HttpRequestBase httpMethod) throws InterruptedException, IOException {
+        RequestConfig.Builder requestConfig = RequestConfig.custom();
+        requestConfig.setConnectTimeout(10 * 1000);
+        requestConfig.setConnectionRequestTimeout(60 * 1000);
+        requestConfig.setSocketTimeout(60 * 1000);
+        httpMethod.setConfig(requestConfig.build());
+
+        CloseableHttpResponse response = client.execute(API_HOST, httpMethod, context);
+        while (response.getStatusLine().getStatusCode() == API_RATE_LIMIT_CODE) {
+            release(httpMethod);
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
@@ -542,28 +690,33 @@ public class BitbucketCloudApiClient implements BitbucketApi {
              */
             LOGGER.fine("Bitbucket Cloud API rate limit reached, sleeping for 5 sec then retry...");
             Thread.sleep(5000);
-            status = client.executeMethod(httpMethod);
+            response = client.execute(API_HOST, httpMethod, context);
         }
-        return status;
+        return response;
     }
 
     /**
-     * Caller's responsbile to close the InputStream.
+     * Caller's responsible to close the InputStream.
      */
     private InputStream getRequestAsInputStream(String path) throws IOException, InterruptedException {
-        GetMethod httpget = new GetMethod(path);
+        HttpGet httpget = new HttpGet(path);
         try {
-            executeMethod(httpget);
-            if (httpget.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+            CloseableHttpResponse response =  executeMethod(httpget);
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+                EntityUtils.consume(response.getEntity());
+                response.close();
                 throw new FileNotFoundException("URL: " + path);
             }
-            InputStream response =  httpget.getResponseBodyAsStream();
-            if (httpget.getStatusCode() != HttpStatus.SC_OK) {
-                throw new BitbucketRequestException(httpget.getStatusCode(),
-                        "HTTP request error. Status: " + httpget.getStatusCode() + ": " + httpget.getStatusText()
-                                + ".\n" + IOUtils.toString(response));
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                String content = IOUtils.toString(response.getEntity().getContent());
+                int statusCode = response.getStatusLine().getStatusCode();
+                String status = response.getStatusLine().getReasonPhrase();
+                EntityUtils.consume(response.getEntity());
+                response.close();
+                throw new BitbucketRequestException(statusCode,
+                        "HTTP request error. Status: " + statusCode + ": " + status + ".\n" + content);
             }
-            return response;
+            return new ClosingConnectionInputStream(response, httpget, connectionManager);
         } catch (BitbucketRequestException | FileNotFoundException e) {
             throw e;
         } catch (IOException e) {
@@ -578,47 +731,49 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     private int headRequestStatus(String path) throws IOException, InterruptedException {
-        HeadMethod httpHead = new HeadMethod(path);
-        try {
-            return executeMethod(httpHead);
+        HttpHead httpHead = new HttpHead(path);
+        try(CloseableHttpResponse response = executeMethod(httpHead)) {
+            EntityUtils.consume(response.getEntity());
+            return response.getStatusLine().getStatusCode();
         } catch (IOException e) {
             throw new IOException("Communication error for url: " + path, e);
         } finally {
-            httpHead.releaseConnection();
+            release(httpHead);
         }
     }
 
     private void deleteRequest(String path) throws IOException, InterruptedException {
-        DeleteMethod httppost = new DeleteMethod(path);
-        try {
-            executeMethod(httppost);
-            if (httppost.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+        HttpDelete httppost = new HttpDelete(path);
+        try(CloseableHttpResponse response =  executeMethod(httppost)) {
+            EntityUtils.consume(response.getEntity());
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NOT_FOUND) {
                 throw new FileNotFoundException("URL: " + path);
             }
-            if (httppost.getStatusCode() != HttpStatus.SC_NO_CONTENT) {
-                throw new BitbucketRequestException(httppost.getStatusCode(), "HTTP request error. Status: " + httppost.getStatusCode() + ": " + httppost.getStatusText());
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_NO_CONTENT) {
+                throw new BitbucketRequestException(response.getStatusLine().getStatusCode(), "HTTP request error. Status: " + response.getStatusLine().getStatusCode() + ": " + response.getStatusLine().getReasonPhrase());
             }
         } catch (BitbucketRequestException e) {
             throw e;
         } catch (IOException e) {
             throw new IOException("Communication error for url: " + path, e);
         } finally {
-            httppost.releaseConnection();
+            release(httppost);
         }
     }
 
-    private String postRequest(PostMethod httppost) throws IOException, InterruptedException {
-        try {
-            executeMethod(httppost);
-            if (httppost.getStatusCode() == HttpStatus.SC_NO_CONTENT) {
+    private String doRequest(HttpRequestBase httppost) throws IOException, InterruptedException {
+        try(CloseableHttpResponse response =  executeMethod(httppost)) {
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
+                EntityUtils.consume(response.getEntity());
                 // 204, no content
                 return "";
             }
-            String response = getResponseContent(httppost, httppost.getResponseContentLength());
-            if (httppost.getStatusCode() != HttpStatus.SC_OK && httppost.getStatusCode() != HttpStatus.SC_CREATED) {
-                throw new BitbucketRequestException(httppost.getStatusCode(), "HTTP request error. Status: " + httppost.getStatusCode() + ": " + httppost.getStatusText() + ".\n" + response);
+            String content = getResponseContent(response);
+            EntityUtils.consume(response.getEntity());
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK && response.getStatusLine().getStatusCode() != HttpStatus.SC_CREATED) {
+                throw new BitbucketRequestException(response.getStatusLine().getStatusCode(), "HTTP request error. Status: " + response.getStatusLine().getStatusCode() + ": " + response.getStatusLine().getReasonPhrase() + ".\n" + response);
             }
-            return response;
+            return content;
         } catch (BitbucketRequestException e) {
             throw e;
         } catch (IOException e) {
@@ -628,15 +783,20 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 throw new IOException("Communication error", e);
             }
         } finally {
-            httppost.releaseConnection();
+            release(httppost);
         }
-
     }
 
-    private String getResponseContent(HttpMethod httppost, long len) throws IOException {
-        String response;
+    private void release(HttpRequestBase method) {
+        method.releaseConnection();
+        connectionManager.closeExpiredConnections();
+    }
+
+    private String getResponseContent(CloseableHttpResponse response) throws IOException {
+        String content;
+        long len = response.getEntity().getContentLength();
         if (len == 0) {
-            response = "";
+            content = "";
         } else {
             ByteArrayOutputStream buf;
             if (len > 0 && len <= Integer.MAX_VALUE / 2) {
@@ -644,24 +804,30 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             } else {
                 buf = new ByteArrayOutputStream();
             }
-            try (InputStream is = httppost.getResponseBodyAsStream()) {
+            try (InputStream is = response.getEntity().getContent()) {
                 IOUtils.copy(is, buf);
             }
-            response = new String(buf.toByteArray(), StandardCharsets.UTF_8);
+            content = new String(buf.toByteArray(), StandardCharsets.UTF_8);
         }
-        return response;
+        return content;
+    }
+
+    private String putRequest(String path, String content) throws IOException, InterruptedException  {
+        HttpPut request = new HttpPut(path);
+        request.setEntity(new StringEntity(content, ContentType.create("application/json", "UTF-8")));
+        return doRequest(request);
     }
 
     private String postRequest(String path, String content) throws IOException, InterruptedException {
-        PostMethod httppost = new PostMethod(path);
-        httppost.setRequestEntity(new StringRequestEntity(content, "application/json", "UTF-8"));
-        return postRequest(httppost);
+        HttpPost httppost = new HttpPost(path);
+        httppost.setEntity(new StringEntity(content, ContentType.create("application/json", "UTF-8")));
+        return doRequest(httppost);
     }
 
-    private String postRequest(String path, NameValuePair[] params) throws IOException, InterruptedException {
-        PostMethod httppost = new PostMethod(path);
-        httppost.setRequestBody(params);
-        return postRequest(httppost);
+    private String postRequest(String path, List<? extends NameValuePair> params) throws IOException, InterruptedException {
+        HttpPost httppost = new HttpPost(path);
+        httppost.setEntity(new UrlEncodedFormEntity(params));
+        return doRequest(httppost);
     }
 
     private List<BitbucketCloudBranch> getAllBranches(String response) throws IOException, InterruptedException {
@@ -675,21 +841,27 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                     new TypeReference<BitbucketCloudPage<BitbucketCloudBranch>>(){});
             branches.addAll(page.getValues());
         }
-        return branches;
+
+        // Filter the inactive branches out
+        List<BitbucketCloudBranch> activeBranches = new ArrayList<>();
+        for (BitbucketCloudBranch branch: branches) {
+            if (branch.isActive()) {
+                activeBranches.add(branch);
+            }
+        }
+
+        return activeBranches;
     }
 
     public Iterable<SCMFile> getDirectoryContent(final BitbucketSCMFile parent) throws IOException, InterruptedException {
-        StringBuilder url = new StringBuilder(V2_API_BASE_URL);
-        url.append(owner);
-        url.append('/');
-        url.append(repositoryName);
-        url.append("/src/");
-        url.append(Util.rawEncode(parent.getRef()));
-        url.append('/');
-
-        url.append(encodePath(parent.getPath()));
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash,path}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("branchOrHash", parent.getHash())
+                .set("path", parent.getPath())
+                .expand();
         List<SCMFile> result = new ArrayList<>();
-        String response = getRequest(url.toString());
+        String response = getRequest(url);
         BitbucketCloudPage<BitbucketRepositorySource> page = JsonParser.mapper.readValue(response,
                 new TypeReference<BitbucketCloudPage<BitbucketRepositorySource>>(){});
 
@@ -709,13 +881,12 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
-        String url = V2_API_BASE_URL + owner +
-                '/' +
-                repositoryName +
-                "/src/" +
-                Util.rawEncode(file.getRef()) +
-                '/' +
-                encodePath(file.getPath());
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash,path}")
+                .set("owner", owner)
+                .set("repo", repositoryName)
+                .set("branchOrHash", file.getHash())
+                .set("path", file.getPath())
+                .expand();
         return getRequestAsInputStream(url);
     }
 }

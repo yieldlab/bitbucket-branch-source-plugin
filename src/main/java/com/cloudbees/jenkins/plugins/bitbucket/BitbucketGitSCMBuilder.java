@@ -120,7 +120,7 @@ public class BitbucketGitSCMBuilder extends GitSCMBuilder<BitbucketGitSCMBuilder
     }
 
     /**
-     * Provides the clone links from the {@link BitbucketRepository} to allow inference of ports for different protols.
+     * Provides the clone links from the {@link BitbucketRepository} to allow inference of ports for different protocols.
      *
      * @param cloneLinks the clone links.
      * @return {@code this} for method chaining.
@@ -236,7 +236,7 @@ public class BitbucketGitSCMBuilder extends GitSCMBuilder<BitbucketGitSCMBuilder
                                 protocolPortOverride,
                                 scmSource().getRepoOwner(),
                                 scmSource().getRepository()),
-                        "+refs/heads/" + localName + ":refs/remotes/@{remote}/" + name);
+                        "+refs/heads/" + name + ":refs/remotes/@{remote}/" + localName);
                 if ((r instanceof PullRequestSCMRevision)
                         && ((PullRequestSCMRevision) r).getTarget() instanceof AbstractGitSCMSource.SCMRevisionImpl) {
                     withExtension(new MergeWithGitSCMExtension("remotes/" + remoteName + "/" + localName,

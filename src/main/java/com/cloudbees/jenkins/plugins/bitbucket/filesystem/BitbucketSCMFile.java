@@ -33,8 +33,9 @@ import jenkins.scm.api.SCMFile;
 
 public class BitbucketSCMFile  extends SCMFile {
 
-	private BitbucketApi api;
-	private String ref;
+	private final BitbucketApi api;
+	private  String ref;
+	private final String hash;
 	
 	public String getRef() {
 		return ref;
@@ -44,23 +45,40 @@ public class BitbucketSCMFile  extends SCMFile {
 		this.ref = ref;
 	}
 
+	@Deprecated
 	public BitbucketSCMFile(BitbucketSCMFileSystem bitBucketSCMFileSystem,
 							BitbucketApi api,
 							String ref) {
+		this(bitBucketSCMFileSystem, api, ref, null);
+	}
+
+	public BitbucketSCMFile(BitbucketSCMFileSystem bitBucketSCMFileSystem,
+							BitbucketApi api,
+							String ref, String hash) {
 		super();
 		type(Type.DIRECTORY);
 		this.api = api;
 		this.ref = ref;
+		this.hash = hash;
 	}
-	
-    public BitbucketSCMFile(@NonNull BitbucketSCMFile parent, String name, Type type) {
+
+	@Deprecated
+	public BitbucketSCMFile(@NonNull BitbucketSCMFile parent, String name, Type type) {
+		this(parent, name, type, null);
+	}
+
+	public BitbucketSCMFile(@NonNull BitbucketSCMFile parent, String name, Type type, String hash) {
     	super(parent, name);
     	this.api = parent.api;
     	this.ref = parent.ref;
+    	this.hash = hash;
     	type(type);
-    	
     }
-    
+
+	public String getHash() {
+		return hash;
+	}
+
 	@Override
 	@NonNull
 	public Iterable<SCMFile> children() throws IOException,
@@ -91,7 +109,7 @@ public class BitbucketSCMFile  extends SCMFile {
 	@Override
 	@NonNull
 	protected SCMFile newChild(String name, boolean assumeIsDirectory) {
-		return new BitbucketSCMFile(this, name, assumeIsDirectory?Type.DIRECTORY:Type.REGULAR_FILE);
+		return new BitbucketSCMFile(this, name, assumeIsDirectory?Type.DIRECTORY:Type.REGULAR_FILE, hash);
 
 	}
 

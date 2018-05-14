@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
 
@@ -19,6 +20,9 @@ public class BitbucketServerWebhook implements BitbucketWebHook {
     private String url;
     @JsonProperty("active")
     private boolean active;
+    
+    @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)     // If null, don't marshal to allow for backwards compatibility
+    private String committersToIgnore; // Since Bitbucket Webhooks version 1.5.0 
 
     @Override
     public String getDescription() {
@@ -36,6 +40,14 @@ public class BitbucketServerWebhook implements BitbucketWebHook {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public String getCommittersToIgnore() {
+        return committersToIgnore;
+    }
+
+    public void setCommittersToIgnore(String committersToIgnore) {
+        this.committersToIgnore = committersToIgnore;
     }
 
     @Override

@@ -37,7 +37,7 @@ public interface BitbucketRepository {
     String getScm();
 
     /**
-     * @return full repositoty name, which is owner/name (where owner could be a user, a team or a project)
+     * @return full repository name, which is owner/name (where owner could be a user, a team or a project)
      */
     String getFullName();
 
