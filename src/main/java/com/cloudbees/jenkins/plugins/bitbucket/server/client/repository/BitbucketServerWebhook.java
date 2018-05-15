@@ -1,21 +1,24 @@
 package com.cloudbees.jenkins.plugins.bitbucket.server.client.repository;
 
 
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
-import java.util.Collections;
 import java.util.List;
+
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
+
 public class BitbucketServerWebhook implements BitbucketWebHook {
     @JsonProperty("id")
     private Integer uid;
-    @JsonProperty("title")
+    @JsonProperty("name")
     private String description;
+    @JsonProperty("events")
+    private List<String> events;
     @JsonProperty("url")
     private String url;
-    @JsonProperty("enabled")
+    @JsonProperty("active")
     private boolean active;
     
     @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)     // If null, don't marshal to allow for backwards compatibility
@@ -57,9 +60,8 @@ public class BitbucketServerWebhook implements BitbucketWebHook {
     }
 
     @Override
-    @JsonIgnore
     public List<String> getEvents() {
-        return Collections.emptyList();
+        return events;
     }
 
     @Override
@@ -69,5 +71,9 @@ public class BitbucketServerWebhook implements BitbucketWebHook {
             return String.valueOf(uid);
         }
         return null;
+    }
+
+    public void setEvents(List<String> events) {
+        this.events = events;
     }
 }

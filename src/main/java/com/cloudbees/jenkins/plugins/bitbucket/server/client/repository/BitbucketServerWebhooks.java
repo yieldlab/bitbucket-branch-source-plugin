@@ -1,6 +1,6 @@
 package com.cloudbees.jenkins.plugins.bitbucket.server.client.repository;
 
-import java.util.ArrayList;
+import com.cloudbees.jenkins.plugins.bitbucket.server.client.PagedApiResponse;
 
-public class BitbucketServerWebhooks extends ArrayList<BitbucketServerWebhook> {
+public class BitbucketServerWebhooks extends PagedApiResponse<BitbucketServerWebhook> {
 }

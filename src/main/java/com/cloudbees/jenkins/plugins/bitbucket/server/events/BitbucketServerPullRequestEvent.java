@@ -28,6 +28,12 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest.Bitbuck
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 import org.codehaus.jackson.annotate.JsonProperty;
 
+/**
+ * 
+ * @see <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-pullrequestPullrequestevents">Event Payload Pull requests</a>
+ * 
+ * TODO: the changes are reported differently than in https://github.com/Eernie/bitbucket-webhooks-plugin/wiki
+ */
 public class BitbucketServerPullRequestEvent implements BitbucketPullRequestEvent {
 
     @JsonProperty("pullrequest")

@@ -27,41 +27,68 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
- * Bitbucket hooks types managed by this plugin.
+ * Bitbucket hooks types managed by this plugin (issued by either Bitbucket Cloud or Server)
  */
 public enum HookEventType {
 
     /**
      * See <a href="https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push">EventPayloads-Push</a>
      */
-    PUSH("repo:push", PushHookProcessor.class),
+    CLOUD_PUSH("repo:push", PushHookProcessor.class, BitbucketType.CLOUD),
 
     /**
      * See <a href="https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Created.1">EventPayloads-Created</a>
      */
-    PULL_REQUEST_CREATED("pullrequest:created", PullRequestHookProcessor.class),
+    CLOUD_PULL_REQUEST_CREATED("pullrequest:created", PullRequestHookProcessor.class, BitbucketType.CLOUD),
 
     /**
      * See <a href="https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Updated.1">EventPayloads-Updated</a>
      */
-    PULL_REQUEST_UPDATED("pullrequest:updated", PullRequestHookProcessor.class),
+    CLOUD_PULL_REQUEST_UPDATED("pullrequest:updated", PullRequestHookProcessor.class, BitbucketType.CLOUD),
 
     /**
      * See <a href="https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Merged">EventPayloads-Merged</a>
      */
-    PULL_REQUEST_MERGED("pullrequest:fulfilled", PullRequestHookProcessor.class),
+    CLOUD_PULL_REQUEST_MERGED("pullrequest:fulfilled", PullRequestHookProcessor.class, BitbucketType.CLOUD),
 
     /**
      * See <a href="https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Declined">EventPayloads-Declined</a>
      */
-    PULL_REQUEST_DECLINED("pullrequest:rejected", PullRequestHookProcessor.class);
+    CLOUD_PULL_REQUEST_DECLINED("pullrequest:rejected", PullRequestHookProcessor.class, BitbucketType.CLOUD),
+
+    /**
+     * See <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Push">EventPayloads-Push</a>
+     */
+    SERVER_PUSH("repo:refs_changed", PullRequestHookProcessor.class, BitbucketType.SERVER),
+
+    /**
+     * See <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Created">EventPayloads-Created</a>
+     */
+    SERVER_PULL_REQUEST_CREATED("pr:opened", PullRequestHookProcessor.class, BitbucketType.SERVER),
+
+    /**
+     * See <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Merged">EventPayloads-Merged</a>
+     */
+    SERVER_PULL_REQUEST_MERGED("pr:merged", PullRequestHookProcessor.class, BitbucketType.SERVER),
+
+    /**
+     * See <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Declined">EventPayloads-Declined</a>
+     */
+    SERVER_PULL_REQUEST_DECLINED("pr:declined", PullRequestHookProcessor.class, BitbucketType.SERVER),
+
+    /**
+     * Sent when hitting the {@literal "Test connection"} button in Bitbucket Server. Apparently undocumented.
+     */
+    SERVER_PING("diagnostics:ping", PingHookProcessor.class, BitbucketType.SERVER);
 
     private String key;
     private Class<?> clazz;
+    private BitbucketType instanceType;
 
-    <P extends HookProcessor> HookEventType(@NonNull String key, Class<P> clazz) {
+    <P extends HookProcessor> HookEventType(@NonNull String key, Class<P> clazz, BitbucketType instanceType) {
         this.key = key;
         this.clazz = clazz;
+        this.instanceType = instanceType;
     }
 
     @CheckForNull
@@ -88,4 +115,7 @@ public enum HookEventType {
         return key;
     }
 
+    public BitbucketType getInstanceType() {
+        return instanceType;
+    }
 }

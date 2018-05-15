@@ -62,8 +62,8 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 
-import static com.cloudbees.jenkins.plugins.bitbucket.hooks.HookEventType.PULL_REQUEST_DECLINED;
-import static com.cloudbees.jenkins.plugins.bitbucket.hooks.HookEventType.PULL_REQUEST_MERGED;
+import static com.cloudbees.jenkins.plugins.bitbucket.hooks.HookEventType.CLOUD_PULL_REQUEST_DECLINED;
+import static com.cloudbees.jenkins.plugins.bitbucket.hooks.HookEventType.CLOUD_PULL_REQUEST_MERGED;
 
 public class PullRequestHookProcessor extends HookProcessor {
 
@@ -81,11 +81,14 @@ public class PullRequestHookProcessor extends HookProcessor {
             if (pull != null) {
                 SCMEvent.Type eventType;
                 switch (hookEvent) {
-                    case PULL_REQUEST_CREATED:
+                    case CLOUD_PULL_REQUEST_CREATED:
+                    case SERVER_PULL_REQUEST_CREATED:
                         eventType = SCMEvent.Type.CREATED;
                         break;
-                    case PULL_REQUEST_DECLINED:
-                    case PULL_REQUEST_MERGED:
+                    case CLOUD_PULL_REQUEST_DECLINED:
+                    case CLOUD_PULL_REQUEST_MERGED:
+                    case SERVER_PULL_REQUEST_DECLINED:
+                    case SERVER_PULL_REQUEST_MERGED:
                         eventType = SCMEvent.Type.REMOVED;
                         break;
                     default:
@@ -211,7 +214,7 @@ public class PullRequestHookProcessor extends HookProcessor {
                                         strategy
                                 );
                             }
-                            if (hookEvent == PULL_REQUEST_DECLINED || hookEvent == PULL_REQUEST_MERGED) {
+                            if (hookEvent == CLOUD_PULL_REQUEST_DECLINED || hookEvent == CLOUD_PULL_REQUEST_MERGED) {
                                 // special case for repo being deleted
                                 result.put(head, null);
                             } else {
