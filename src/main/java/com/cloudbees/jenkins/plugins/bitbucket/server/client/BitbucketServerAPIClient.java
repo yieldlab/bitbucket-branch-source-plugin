@@ -165,7 +165,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Deprecated
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
                                     @CheckForNull StandardUsernamePasswordCredentials credentials, boolean userCentric) {
-        this(baseURL, owner, repositoryName, new BitbucketUsernamePasswordAuthenticator(credentials), userCentric);
+        this(baseURL, owner, repositoryName, credentials != null ? new BitbucketUsernamePasswordAuthenticator(credentials) : null, userCentric);
     }
 
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,

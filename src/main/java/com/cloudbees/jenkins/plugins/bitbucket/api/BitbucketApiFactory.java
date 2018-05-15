@@ -46,7 +46,8 @@ public abstract class BitbucketApiFactory implements ExtensionPoint {
                                            @Nullable StandardUsernamePasswordCredentials credentials,
                                            @NonNull String owner,
                                            @CheckForNull String repository) {
-        return create(serverUrl, new BitbucketUsernamePasswordAuthenticator(credentials), owner, repository);
+        BitbucketAuthenticator auth = credentials != null ? new BitbucketUsernamePasswordAuthenticator(credentials) : null;
+        return create(serverUrl, auth, owner, repository);
     }
 
     /**
@@ -79,6 +80,7 @@ public abstract class BitbucketApiFactory implements ExtensionPoint {
                                            @Nullable StandardUsernamePasswordCredentials credentials,
                                            @NonNull String owner,
                                            @CheckForNull String repository) {
-        return newInstance(serverUrl, new BitbucketUsernamePasswordAuthenticator(credentials), owner, repository);
+        BitbucketAuthenticator auth = credentials != null ? new BitbucketUsernamePasswordAuthenticator(credentials) : null;
+        return newInstance(serverUrl, auth, owner, repository);
     }
 }
