@@ -60,7 +60,7 @@ public enum HookEventType {
      * See <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Push">EventPayloads-Push</a>
      */
     SERVER_PUSH("repo:refs_changed", PullRequestHookProcessor.class, BitbucketType.SERVER),
-    
+
     /**
      * See <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Created">EventPayloads-Created</a>
      */
@@ -74,7 +74,12 @@ public enum HookEventType {
     /**
      * See <a href="https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Declined">EventPayloads-Declined</a>
      */
-    SERVER_PULL_REQUEST_DECLINED("pr:declined", PullRequestHookProcessor.class, BitbucketType.SERVER);
+    SERVER_PULL_REQUEST_DECLINED("pr:declined", PullRequestHookProcessor.class, BitbucketType.SERVER),
+
+    /**
+     * Sent when hitting the {@literal "Test connection"} button in Bitbucket Server. Apparently undocumented.
+     */
+    SERVER_PING("diagnostics:ping", PingHookProcessor.class, BitbucketType.SERVER);
 
     private String key;
     private Class<?> clazz;
