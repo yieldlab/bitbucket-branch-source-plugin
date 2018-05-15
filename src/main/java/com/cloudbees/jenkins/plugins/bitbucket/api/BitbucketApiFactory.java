@@ -1,5 +1,7 @@
 package com.cloudbees.jenkins.plugins.bitbucket.api;
 
+import com.cloudbees.jenkins.plugins.bitbucket.api.credentials.BitbucketUsernamePasswordAuthenticator;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -38,6 +40,15 @@ public abstract class BitbucketApiFactory implements ExtensionPoint {
                                            @NonNull String owner,
                                            @CheckForNull String repository);
 
+    @NonNull
+    @Deprecated
+    protected BitbucketApi create(@Nullable String serverUrl,
+                                           @Nullable StandardUsernamePasswordCredentials credentials,
+                                           @NonNull String owner,
+                                           @CheckForNull String repository) {
+        return create(serverUrl, new BitbucketUsernamePasswordAuthenticator(credentials), owner, repository);
+    }
+
     /**
      * Creates a {@link BitbucketApi} for the specified URL with the supplied credentials, owner and (optional)
      * repository.
@@ -60,5 +71,14 @@ public abstract class BitbucketApiFactory implements ExtensionPoint {
             }
         }
         throw new IllegalArgumentException("Unsupported Bitbucket server URL: " + serverUrl);
+    }
+
+    @NonNull
+    @Deprecated
+    public static BitbucketApi newInstance(@Nullable String serverUrl,
+                                           @Nullable StandardUsernamePasswordCredentials credentials,
+                                           @NonNull String owner,
+                                           @CheckForNull String repository) {
+        return newInstance(serverUrl, new BitbucketUsernamePasswordAuthenticator(credentials), owner, repository);
     }
 }

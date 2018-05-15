@@ -37,6 +37,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
+import com.cloudbees.jenkins.plugins.bitbucket.api.credentials.BitbucketUsernamePasswordAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.client.branch.BitbucketCloudBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.client.branch.BitbucketCloudCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.client.pullrequest.BitbucketPullRequestCommit;
@@ -51,6 +52,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketReposi
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.PaginatedBitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 import com.fasterxml.jackson.core.type.TypeReference;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -144,6 +146,13 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     public static void clearCaches() {
         cachedTeam.evictAll();
         cachedRepositories.evictAll();
+    }
+
+    @Deprecated
+    public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuraction,
+                                   String owner, String repositoryName, StandardUsernamePasswordCredentials credentials) {
+        this(enableCache, teamCacheDuration, repositoriesCacheDuraction, owner, repositoryName,
+                new BitbucketUsernamePasswordAuthenticator(credentials));
     }
 
     public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuraction,
@@ -274,6 +283,15 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             pullRequests.addAll(page.getValues());
         }
         return pullRequests;
+    }
+
+    @Deprecated
+    @CheckForNull
+    public String getLogin() {
+        if (authenticator != null) {
+            return authenticator.getId();
+        }
+        return null;
     }
 
     /**

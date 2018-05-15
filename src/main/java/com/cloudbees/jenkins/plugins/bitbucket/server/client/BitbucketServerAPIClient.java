@@ -35,6 +35,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
+import com.cloudbees.jenkins.plugins.bitbucket.api.credentials.BitbucketUsernamePasswordAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.AbstractBitbucketEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfiguration;
@@ -160,6 +161,12 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private HttpClientContext context;
 
     private final String baseURL;
+
+    @Deprecated
+    public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
+                                    @CheckForNull StandardUsernamePasswordCredentials credentials, boolean userCentric) {
+        this(baseURL, owner, repositoryName, new BitbucketUsernamePasswordAuthenticator(credentials), userCentric);
+    }
 
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
                                     @CheckForNull BitbucketAuthenticator authenticator, boolean userCentric) {
