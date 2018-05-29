@@ -86,6 +86,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
@@ -106,6 +107,7 @@ import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
+import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 import jenkins.scm.impl.trait.Discovery;
@@ -566,7 +568,16 @@ public class BitbucketSCMSource extends SCMSource {
                 });
             }
             if (request.isFetchTags()) {
-                // TODO request.setTags(...);
+                request.setTags(new LazyIterable<BitbucketBranch>() {
+                    @Override
+                    protected Iterable<BitbucketBranch> create() {
+                        try {
+                            return (Iterable<BitbucketBranch>) buildBitbucketClient().getTags();
+                        } catch (IOException | InterruptedException e) {
+                            throw new BitbucketSCMSource.WrappedException(e);
+                        }
+                    }
+                });
             }
 
             // now server the request
@@ -579,7 +590,8 @@ public class BitbucketSCMSource extends SCMSource {
                 retrievePullRequests(request);
             }
             if (request.isFetchTags() && !request.isComplete()) {
-                // TODO
+                //Search tags
+                retrieveTags(request);
             }
         } catch (WrappedException e) {
             e.unwrap();
@@ -778,6 +790,38 @@ public class BitbucketSCMSource extends SCMSource {
         request.listener().getLogger().format("%n  %d branches were processed%n", count);
     }
 
+
+    private void retrieveTags(final BitbucketSCMSourceRequest request)
+            throws IOException, InterruptedException {
+        String fullName = repoOwner + "/" + repository;
+        request.listener().getLogger().println("Looking up " + fullName + " for tags");
+
+        final BitbucketApi bitbucket = buildBitbucketClient();
+        Map<String, List<BitbucketHref>> links = bitbucket.getRepository().getLinks();
+        if (links != null && links.containsKey("clone")) {
+            cloneLinks = links.get("clone");
+        }
+        int count = 0;
+        for (final BitbucketBranch tag : request.getTags()) {
+            request.listener().getLogger().println("Checking tag " + tag.getName() + " from " + fullName);
+            count++;
+            if (request.process(new BitbucketTagSCMHead(tag.getName(), tag.getDateMillis(), repositoryType),
+                    new SCMSourceRequest.IntermediateLambda<String>() {
+                        @Nullable
+                        @Override
+                        public String create() {
+                            return tag.getRawNode();
+                        }
+                    }, new BitbucketProbeFactory(bitbucket, request), new BitbucketRevisionFactory(),
+                    new CriteriaWitness(request)
+            )) {
+                request.listener().getLogger().format("%n  %d tags were processed (query completed)%n", count);
+                return;
+            }
+        }
+        request.listener().getLogger().format("%n  %d tags were processed%n", count);
+    }
+
     @Override
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
         final BitbucketApi bitbucket = buildBitbucketClient();
@@ -822,6 +866,19 @@ public class BitbucketSCMSource extends SCMSource {
                         new SCMRevisionImpl(h.getTarget(), targetRevision),
                         new SCMRevisionImpl(h, sourceRevision)
                 );
+            }
+        } else if(head instanceof BitbucketTagSCMHead) {
+            BitbucketTagSCMHead tagHead = (BitbucketTagSCMHead) head;
+            List<? extends BitbucketBranch> tags = bitbucket.getTags();
+            String revision = findRawNode(head.getName(), tags, listener);
+            if (revision == null) {
+                LOGGER.log(Level.WARNING, "No tag found in {0}/{1} with name [{2}]", new Object[] { repoOwner, repository, head.getName() });
+                return null;
+            }
+            if (getRepositoryType() == BitbucketRepositoryType.MERCURIAL) {
+                return new MercurialRevision(head, revision);
+            } else {
+                return new GitTagSCMRevision(tagHead, revision);
             }
         } else {
             String revision = findRawNode(head.getName(), branches, listener);
@@ -889,8 +946,10 @@ public class BitbucketSCMSource extends SCMSource {
             type = ((PullRequestSCMHead) head).getRepositoryType();
         } else if (head instanceof BranchSCMHead) {
             type = ((BranchSCMHead) head).getRepositoryType();
+        } else if (head instanceof BitbucketTagSCMHead) {
+            type = ((BitbucketTagSCMHead) head).getRepositoryType();
         } else {
-            throw new IllegalArgumentException("Either PullRequestSCMHead or BranchSCMHead required as parameter");
+            throw new IllegalArgumentException("Either PullRequestSCMHead, BitbucketTagSCMHead or BranchSCMHead required as parameter");
         }
         if (type == null) {
             if (revision instanceof MercurialRevision) {
@@ -1260,8 +1319,9 @@ public class BitbucketSCMSource extends SCMSource {
         protected SCMHeadCategory[] createCategories() {
             return new SCMHeadCategory[]{
                     new UncategorizedSCMHeadCategory(Messages._BitbucketSCMSource_UncategorizedSCMHeadCategory_DisplayName()),
-                    new ChangeRequestSCMHeadCategory(Messages._BitbucketSCMSource_ChangeRequestSCMHeadCategory_DisplayName())
-                    // TODO add support for tags and maybe feature branch identification
+                    new ChangeRequestSCMHeadCategory(Messages._BitbucketSCMSource_ChangeRequestSCMHeadCategory_DisplayName()),
+                    new TagSCMHeadCategory(Messages._BitbucketSCMSource_TagSCMHeadCategory_DisplayName())
+                    // TODO add support for feature branch identification
             };
         }
 

@@ -382,8 +382,20 @@ public class BitbucketCloudApiClient implements BitbucketApi {
      */
     @NonNull
     @Override
+    public List<BitbucketCloudBranch> getTags() throws IOException, InterruptedException {
+        return getBranchesByRef("/refs/tags");
+    }
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
     public List<BitbucketCloudBranch> getBranches() throws IOException, InterruptedException {
-        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/refs/branches")
+        return getBranchesByRef("/refs/branches");
+    }
+
+    public List<BitbucketCloudBranch> getBranchesByRef(String nodePath) throws IOException, InterruptedException {
+        String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + nodePath)
                 .set("owner", owner)
                 .set("repo", repositoryName)
                 .expand();

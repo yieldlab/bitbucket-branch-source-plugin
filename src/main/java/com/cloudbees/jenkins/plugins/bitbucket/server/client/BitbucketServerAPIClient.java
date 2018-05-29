@@ -47,6 +47,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.Bitbucke
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerWebhooks;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
+import com.damnhandy.uri.template.impl.Operator;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -111,13 +112,14 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketServerAPIClient.class.getName());
     private static final String API_BASE_PATH = "/rest/api/1.0";
-    private static final String API_REPOSITORIES_PATH = API_BASE_PATH + "/projects/{owner}/repos{?start}";
+    private static final String API_REPOSITORIES_PATH = API_BASE_PATH + "/projects/{owner}/repos{?start,limit}";
     private static final String API_REPOSITORY_PATH = API_BASE_PATH + "/projects/{owner}/repos/{repo}";
     private static final String API_DEFAULT_BRANCH_PATH = API_REPOSITORY_PATH + "/branches/default";
     private static final String API_BRANCHES_PATH = API_REPOSITORY_PATH + "/branches{?start,limit}";
+    private static final String API_TAGS_PATH = API_REPOSITORY_PATH + "/tags{?start,limit}";
     private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit}";
     private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}";
-    private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path}{?at}";
+    private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path*}{?at}";
     private static final String API_COMMITS_PATH = API_REPOSITORY_PATH + "/commits{/hash}";
     private static final String API_PROJECT_PATH = API_BASE_PATH + "/projects/{owner}";
     private static final String API_COMMIT_COMMENT_PATH = API_REPOSITORY_PATH + "/commits{/hash}/comments";
@@ -258,33 +260,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         UriTemplate template = UriTemplate
                 .fromTemplate(API_PULL_REQUESTS_PATH)
                 .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("start", 0)
-                .set("limit", DEFAULT_PAGE_LIMIT);
-        String url = template.expand();
-
-        try {
-            List<BitbucketServerPullRequest> pullRequests = new ArrayList<>();
-            String response = getRequest(url);
-            BitbucketServerPullRequests page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
-            pullRequests.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                Integer limit = page.getLimit();
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
-                        .expand();
-                response = getRequest(url);
-                page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
-                pullRequests.addAll(page.getValues());
-            }
-            return pullRequests;
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
-        }
+                .set("repo", repositoryName);
+        return getResources(template, BitbucketServerPullRequests.class);
     }
 
     /**
@@ -371,7 +348,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH)
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", path)
+                .set("path", path.split(Operator.PATH.getSeparator()))
                 .set("at", branchOrHash)
                 .expand();
         int status = getRequestStatus(url);
@@ -403,49 +380,41 @@ public class BitbucketServerAPIClient implements BitbucketApi {
      */
     @Override
     @NonNull
-    public List<BitbucketServerBranch> getBranches() throws IOException, InterruptedException {
-        UriTemplate template = UriTemplate
-                .fromTemplate(API_BRANCHES_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("start", 0)
-                .set("limit", DEFAULT_PAGE_LIMIT);
-        String url = template.expand();
+    public List<BitbucketServerBranch> getTags() throws IOException, InterruptedException {
+        return getServerBranches(API_TAGS_PATH);
+    }
 
-        try {
-            List<BitbucketServerBranch> branches = new ArrayList<>();
-            String response = getRequest(url);
-            BitbucketServerBranches page = JsonParser.toJava(response, BitbucketServerBranches.class);
-            branches.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                Integer limit = page.getLimit();
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
-                        .expand();
-                response = getRequest(url);
-                page = JsonParser.toJava(response, BitbucketServerBranches.class);
-                branches.addAll(page.getValues());
-            }
-            for (final BitbucketServerBranch branch: branches) {
-                branch.setTimestampClosure(new Callable<Long>() {
-                    @Override
-                    public Long call() throws Exception {
-                        BitbucketCommit commit = resolveCommit(branch.getRawNode());
-                        if (commit != null) {
-                            return commit.getDateMillis();
-                        }
-                        return 0L;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @NonNull
+    public List<BitbucketServerBranch> getBranches() throws IOException, InterruptedException {
+        return getServerBranches(API_BRANCHES_PATH);
+    }
+
+
+    private List<BitbucketServerBranch> getServerBranches(String apiPath) throws IOException, InterruptedException {
+        UriTemplate template = UriTemplate
+                .fromTemplate(apiPath)
+                .set("owner", getUserCentricOwner())
+                .set("repo", repositoryName);
+
+        List<BitbucketServerBranch> branches = getResources(template, BitbucketServerBranches.class);
+        for (final BitbucketServerBranch branch : branches) {
+            branch.setTimestampClosure(new Callable<Long>() {
+                @Override
+                public Long call() throws Exception {
+                    BitbucketCommit commit = resolveCommit(branch.getRawNode());
+                    if (commit != null) {
+                        return commit.getDateMillis();
                     }
-                });
-            }
-            return branches;
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
+                    return 0L;
+                }
+            });
         }
+
+        return branches;
     }
 
     /** {@inheritDoc} */
@@ -550,38 +519,22 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             throws IOException, InterruptedException {
         UriTemplate template = UriTemplate
                 .fromTemplate(API_REPOSITORIES_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("start", 0);
-        String url = template.expand();
+                .set("owner", getUserCentricOwner());
 
+        List<BitbucketServerRepository> repositories;
         try {
-            List<BitbucketServerRepository> repositories = new ArrayList<>();
-            String response = getRequest(url);
-            BitbucketServerRepositories page = JsonParser.toJava(response, BitbucketServerRepositories.class);
-            repositories.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .expand();
-                response = getRequest(url);
-                page = JsonParser.toJava(response, BitbucketServerRepositories.class);
-                repositories.addAll(page.getValues());
-            }
-            Collections.sort(repositories, new Comparator<BitbucketServerRepository>() {
-                @Override
-                public int compare(BitbucketServerRepository o1, BitbucketServerRepository o2) {
-                    return o1.getRepositoryName().compareTo(o2.getRepositoryName());
-                }
-            });
-            return repositories;
+            repositories = getResources(template, BitbucketServerRepositories.class);
         } catch (FileNotFoundException e) {
             return new ArrayList<>();
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
         }
+        Collections.sort(repositories, new Comparator<BitbucketServerRepository>() {
+            @Override
+            public int compare(BitbucketServerRepository o1, BitbucketServerRepository o2) {
+                return o1.getRepositoryName().compareTo(o2.getRepositoryName());
+            }
+        });
+
+        return repositories;
     }
 
     /** {@inheritDoc} */
@@ -594,6 +547,36 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public boolean isPrivate() throws IOException {
         return getRepository().isPrivate();
+    }
+
+    private <V> List<V> getResources(UriTemplate template, Class<? extends PagedApiResponse<V>> clazz) throws IOException, InterruptedException {
+        template.set("start", 0).set("limit", DEFAULT_PAGE_LIMIT);
+        String url = template.expand();
+
+        try {
+            List<V> resources = new ArrayList<>();
+            String response = getRequest(url);
+            PagedApiResponse<V> page = JsonParser.toJava(response, clazz);
+            resources.addAll(page.getValues());
+            while (!page.isLastPage()) {
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
+                Integer limit = page.getLimit();
+                url = template
+                        .set("start", page.getNextPageStart())
+                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
+                        .expand();
+                response = getRequest(url);
+                page = JsonParser.toJava(response, clazz);
+                resources.addAll(page.getValues());
+            }
+            return resources;
+        } catch (FileNotFoundException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new IOException("I/O error when accessing URL: " + url, e);
+        }
     }
 
     private String getRequest(String path) throws IOException {
@@ -666,9 +649,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             proxyConfig = jenkins.proxy;
         }
 
-        Proxy proxy = Proxy.NO_PROXY;
+        final Proxy proxy;
+
         if (proxyConfig != null) {
-            proxy = proxyConfig.createProxy(host);
+            URI hostURI = URI.create(host);
+            proxy = proxyConfig.createProxy(hostURI.getHost());
+        } else {
+             proxy = Proxy.NO_PROXY;
         }
 
         if (proxy.type() != Proxy.Type.DIRECT) {
@@ -805,7 +792,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", directory.getPath())
+                .set("path", directory.getPath().split(Operator.PATH.getSeparator()))
                 .set("at", directory.getRef())
                 .set("start", start)
                 .set("limit", 500);
@@ -853,7 +840,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_BROWSE_PATH + "{&start,limit}")
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("path", file.getPath())
+                .set("path", file.getPath().split(Operator.PATH.getSeparator()))
                 .set("at", file.getRef())
                 .set("start", start)
                 .set("limit", 500);
