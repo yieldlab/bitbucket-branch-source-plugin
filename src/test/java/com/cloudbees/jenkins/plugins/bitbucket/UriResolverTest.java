@@ -66,6 +66,14 @@ public class UriResolverTest {
                 "user2",
                 "repo2"
         ));
+        api = new BitbucketServerAPIClient("http://devtools.test:1234/git/web/", "test", null, null, false);
+        assertEquals("http://devtools.test:1234/git/web/scm/user2/repo2.git", api.getRepositoryUri(
+                BitbucketRepositoryType.GIT,
+                BitbucketRepositoryProtocol.HTTP,
+                null,
+                "user2",
+                "repo2"
+        ));
     }
 
     @Test
@@ -89,7 +97,7 @@ public class UriResolverTest {
         assertEquals("ssh://git@localhost:7999/user2/repo2.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.SSH,
-                7999,
+                "ssh://git@localhost:7999/user1/repo1.git",
                 "user2",
                 "repo2"
         ));
@@ -97,7 +105,7 @@ public class UriResolverTest {
         assertEquals("ssh://git@myserver:7999/user2/repo2.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.SSH,
-                7999,
+                "ssh://git@myserver:7999/user1/repo1.git",
                 "user2",
                 "repo2"
         ));

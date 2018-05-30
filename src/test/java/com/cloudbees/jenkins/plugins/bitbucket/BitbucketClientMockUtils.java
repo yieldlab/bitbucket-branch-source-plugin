@@ -57,7 +57,7 @@ public class BitbucketClientMockUtils {
     public static BitbucketCloudApiClient getAPIClientMock(BitbucketRepositoryType type, boolean includePullRequests,
             boolean includeWebHooks) throws IOException, InterruptedException {
         BitbucketCloudApiClient bitbucket = mock(BitbucketCloudApiClient.class);
-        when(bitbucket.getRepositoryUri(any(BitbucketRepositoryType.class), any(BitbucketRepositoryProtocol.class), any(Integer.class), anyString(), anyString())).thenCallRealMethod();
+        when(bitbucket.getRepositoryUri(any(BitbucketRepositoryType.class), any(BitbucketRepositoryProtocol.class), anyString(), anyString(), anyString())).thenCallRealMethod();
         // mock branch list
         List<BitbucketCloudBranch> branches = new ArrayList<BitbucketCloudBranch>();
         branches.add(getBranch("branch1", "52fc8e220d77ec400f7fc96a91d2fd0bb1bc553a"));
