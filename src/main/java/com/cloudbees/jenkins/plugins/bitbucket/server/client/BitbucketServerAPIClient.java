@@ -117,7 +117,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_DEFAULT_BRANCH_PATH = API_REPOSITORY_PATH + "/branches/default";
     private static final String API_BRANCHES_PATH = API_REPOSITORY_PATH + "/branches{?start,limit}";
     private static final String API_TAGS_PATH = API_REPOSITORY_PATH + "/tags{?start,limit}";
-    private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit}";
+    private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit,at,direction,state}";
     private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}";
     private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path*}{?at}";
     private static final String API_COMMITS_PATH = API_REPOSITORY_PATH + "/commits{/hash}";
@@ -267,6 +267,18 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_PULL_REQUESTS_PATH)
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName);
+        return getResources(template, BitbucketServerPullRequests.class);
+    }
+
+    @NonNull
+    public List<BitbucketServerPullRequest> getOutgoingOpenPullRequests(String fromRef) throws IOException, InterruptedException {
+        UriTemplate template = UriTemplate
+                .fromTemplate(API_PULL_REQUESTS_PATH)
+                .set("owner", getUserCentricOwner())
+                .set("repo", repositoryName)
+                .set("at", fromRef)
+                .set("direction", "outgoing")
+                .set("state", "OPEN");
         return getResources(template, BitbucketServerPullRequests.class);
     }
 

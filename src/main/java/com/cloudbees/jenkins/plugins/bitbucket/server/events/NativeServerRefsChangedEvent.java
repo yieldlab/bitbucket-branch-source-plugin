@@ -3,7 +3,6 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.events;
 import java.util.Collections;
 import java.util.List;
 
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 
 public class NativeServerRefsChangedEvent {
@@ -11,7 +10,7 @@ public class NativeServerRefsChangedEvent {
     private BitbucketServerRepository repository;
     private List<Change> changes;
 
-    public BitbucketRepository getRepository() {
+    public BitbucketServerRepository getRepository() {
         return repository;
     }
 

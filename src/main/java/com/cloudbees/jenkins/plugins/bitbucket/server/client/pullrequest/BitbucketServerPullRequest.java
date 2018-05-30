@@ -25,7 +25,6 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequest;
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequestSource;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +54,7 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
     private Map<String, List<BitbucketHref>> links;
 
     @Override
-    public BitbucketPullRequestSource getSource() {
+    public BitbucketServerPullRequestSource getSource() {
         return source;
     }
 
