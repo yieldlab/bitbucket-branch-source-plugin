@@ -23,19 +23,23 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
+import com.cloudbees.jenkins.plugins.bitbucket.server.BitbucketServerWebhookImplementation;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.Util;
 import hudson.util.FormValidation;
+
+import static java.util.Objects.requireNonNull;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import javax.annotation.Nonnull;
 import jenkins.scm.api.SCMName;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 /**
@@ -69,6 +73,9 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
      */
     @NonNull
     private final String serverUrl;
+
+    @NonNull
+    private BitbucketServerWebhookImplementation webhookImplementation = BitbucketServerWebhookImplementation.PLUGIN;
 
     /**
      * @param displayName   Optional name to use to describe the end-point.
@@ -116,6 +123,16 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
         return repoOwner.startsWith("~")
                 ? template.set("userOrProject", "users").set("owner", repoOwner.substring(1)).expand()
                 : template.set("userOrProject", "projects").set("owner", repoOwner).expand();
+    }
+
+    @NonNull
+    public BitbucketServerWebhookImplementation getWebhookImplementation() {
+        return webhookImplementation;
+    }
+
+    @DataBoundSetter
+    public void setWebhookImplementation(@NonNull BitbucketServerWebhookImplementation webhookImplementation) {
+        this.webhookImplementation = requireNonNull(webhookImplementation);
     }
 
     /**
