@@ -88,7 +88,7 @@ public class BitbucketBuildStatusNotifications {
             status = new BitbucketBuildStatus(hash, "Something is wrong with the build of this commit", "FAILED", url,
                     key, name);
         } else {
-            status = new BitbucketBuildStatus(hash, "The tests have started...", "INPROGRESS", url, key, name);
+            status = new BitbucketBuildStatus(hash, "The build is in progress...", "INPROGRESS", url, key, name);
         }
         new BitbucketChangesetCommentNotifier(bitbucket).buildStatus(status);
         if (result != null) {
