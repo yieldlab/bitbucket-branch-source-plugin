@@ -26,6 +26,8 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.client.repository;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryOwner;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketProject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +41,7 @@ public class BitbucketServerRepository implements BitbucketRepository {
     @JsonProperty("scmId")
     private String scm;
 
-    private Project project;
+    private BitbucketProject project;
 
     @JsonProperty("slug")
     private String repositoryName;
@@ -79,8 +81,13 @@ public class BitbucketServerRepository implements BitbucketRepository {
         return repositoryName;
     }
 
-    public void setProject(Project p) {
-        this.project = p;
+    @Override
+    public BitbucketProject getProject() {
+        return this.project;
+    }
+
+    public void setProject(BitbucketProject project) {
+        this.project = project;
     }
 
     @Override
@@ -116,31 +123,6 @@ public class BitbucketServerRepository implements BitbucketRepository {
             for (Map.Entry<String, List<BitbucketHref>> entry : links.entrySet()) {
                 this.links.put(entry.getKey(), new ArrayList<>(entry.getValue()));
             }
-        }
-    }
-
-    public static class Project {
-
-        @JsonProperty
-        private String key;
-
-        @JsonProperty
-        private String name;
-
-        public String getKey() {
-            return key;
-        }
-
-        public void setKey(String key) {
-            this.key = key;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
         }
     }
 

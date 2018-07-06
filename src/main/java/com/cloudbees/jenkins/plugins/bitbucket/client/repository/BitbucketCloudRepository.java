@@ -24,6 +24,7 @@
 package com.cloudbees.jenkins.plugins.bitbucket.client.repository;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketProject;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import java.util.ArrayList;
 import java.util.Date;
@@ -53,6 +54,9 @@ public class BitbucketCloudRepository implements BitbucketRepository {
     @JsonDeserialize(keyAs = String.class, contentUsing = BitbucketHref.Deserializer.class)
     private Map<String,List<BitbucketHref>> links;
 
+    @JsonProperty
+    private BitbucketProject project;
+
     @Override
     public String getScm() {
         return scm;
@@ -78,6 +82,14 @@ public class BitbucketCloudRepository implements BitbucketRepository {
 
     public void setOwner(BitbucketCloudRepositoryOwner owner) {
         this.owner = owner;
+    }
+
+    public void setProject(BitbucketProject project) {
+        this.project = project;
+    }
+
+    public BitbucketProject getProject() {
+        return this.project;
     }
 
     public void setUpdatedOn(Date updatedOn) {
