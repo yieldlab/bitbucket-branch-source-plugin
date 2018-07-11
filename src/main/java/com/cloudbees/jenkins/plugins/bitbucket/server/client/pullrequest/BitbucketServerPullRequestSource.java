@@ -26,7 +26,6 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequestSource;
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
@@ -44,7 +43,7 @@ public class BitbucketServerPullRequestSource implements BitbucketPullRequestSou
     private BitbucketServerRepository repository;
 
     @Override
-    public BitbucketRepository getRepository() {
+    public BitbucketServerRepository getRepository() {
         return repository;
     }
 

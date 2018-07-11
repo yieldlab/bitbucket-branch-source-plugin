@@ -227,9 +227,11 @@ public class BitbucketSCMNavigator extends SCMNavigator {
         this.credentialsId = Util.fixEmpty(credentialsId);
     }
 
+    @SuppressWarnings("unchecked")
     @DataBoundSetter
-    public void setTraits(@NonNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
-        this.traits = new ArrayList<>(/*defensive*/Util.fixNull(traits));
+    public void setTraits(@NonNull List<SCMTrait> traits) {
+        // the reduced generics in the method signature are a workaround for JENKINS-26535
+        this.traits = new ArrayList<>((List)/*defensive*/Util.fixNull(traits));
     }
 
     public String getServerUrl() {
@@ -594,10 +596,11 @@ public class BitbucketSCMNavigator extends SCMNavigator {
             return "icon-bitbucket-scmnavigator";
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public SCMNavigator newInstance(String name) {
             BitbucketSCMNavigator instance = new BitbucketSCMNavigator(StringUtils.defaultString(name));
-            instance.setTraits(getTraitsDefaults());
+            instance.setTraits((List) getTraitsDefaults());
             return instance;
         }
 
