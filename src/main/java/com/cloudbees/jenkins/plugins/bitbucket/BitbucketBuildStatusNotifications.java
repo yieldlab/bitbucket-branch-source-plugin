@@ -73,6 +73,13 @@ public class BitbucketBuildStatusNotifications {
                             + " configured in Jenkins global configuration.");
             return;
         }
+        if (url.startsWith("http://localhost")) {
+            listener.getLogger().println(
+                    "Invalid Jenkins root URL. URL is pointing to http://localhost. "
+                            + "Commit status notifications are disabled until a valid root URL is configured.");
+            return;
+        }
+
         String key = build.getParent().getFullName(); // use the job full name as the key for the status
         String name = build.getFullDisplayName(); // use the build number as the display name of the status
         BitbucketBuildStatus status;
