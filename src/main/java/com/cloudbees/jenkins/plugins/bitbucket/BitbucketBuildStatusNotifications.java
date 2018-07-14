@@ -54,27 +54,36 @@ import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
  */
 public class BitbucketBuildStatusNotifications {
 
-    private static final String INVALID_URL_LOG_MESSAGE = "Can not determine Jenkins root URL. " +
-        "Commit status notifications are disabled until a root URL is " +
-        "configured in Jenkins global configuration.";
+    private static String getRootURL(@NonNull Run<?, ?> build) {
+        JenkinsLocationConfiguration cfg = JenkinsLocationConfiguration.get();
+
+        if (cfg == null || cfg.getUrl() == null) {
+            throw new IllegalStateException("Could not determine Jenkins URL.");
+        }
+
+        String url = DisplayURLProvider.get().getRunURL(build);
+
+        if (url.startsWith("http://localhost")) {
+            throw new IllegalStateException("Jenkins URL cannot start with http://localhost");
+        }
+        if (url.equals("http://unconfigured-jenkins-location/")) {
+            throw new IllegalStateException("Could not determine Jenkins URL.");
+        }
+
+        return url;
+    }
 
     private static void createStatus(@NonNull Run<?, ?> build, @NonNull TaskListener listener,
                                      @NonNull BitbucketApi bitbucket, @NonNull String hash)
             throws IOException, InterruptedException {
-        JenkinsLocationConfiguration cfg = JenkinsLocationConfiguration.get();
-        if (cfg == null || cfg.getUrl() == null) {
-            listener.getLogger().println(INVALID_URL_LOG_MESSAGE);
-            return;
-        }
+
         String url;
         try {
-            url = DisplayURLProvider.get().getRunURL(build);
+            url = getRootURL(build);
         } catch (IllegalStateException e) {
-            listener.getLogger().println(INVALID_URL_LOG_MESSAGE);
-            return;
-        }
-        if (url.startsWith("http://localhost") || url.startsWith("http://unconfigured-jenkins-location")) {
-            listener.getLogger().println(INVALID_URL_LOG_MESSAGE);
+            listener.getLogger().println("Can not determine Jenkins root URL. " +
+                    "Commit status notifications are disabled until a root URL is " +
+                    "configured in Jenkins global configuration.");
             return;
         }
 
