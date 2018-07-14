@@ -54,29 +54,27 @@ import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
  */
 public class BitbucketBuildStatusNotifications {
 
+    private static final String INVALID_URL_LOG_MESSAGE = "Can not determine Jenkins root URL. " +
+        "Commit status notifications are disabled until a root URL is " +
+        "configured in Jenkins global configuration.";
+
     private static void createStatus(@NonNull Run<?, ?> build, @NonNull TaskListener listener,
                                      @NonNull BitbucketApi bitbucket, @NonNull String hash)
             throws IOException, InterruptedException {
         JenkinsLocationConfiguration cfg = JenkinsLocationConfiguration.get();
         if (cfg == null || cfg.getUrl() == null) {
-            listener.getLogger().println(
-                    "Can not determine Jenkins root URL. Commit status notifications are disabled until a root URL is"
-                            + " configured in Jenkins global configuration.");
+            listener.getLogger().println(INVALID_URL_LOG_MESSAGE);
             return;
         }
         String url;
         try {
             url = DisplayURLProvider.get().getRunURL(build);
         } catch (IllegalStateException e) {
-            listener.getLogger().println(
-                    "Can not determine Jenkins root URL. Commit status notifications are disabled until a root URL is"
-                            + " configured in Jenkins global configuration.");
+            listener.getLogger().println(INVALID_URL_LOG_MESSAGE);
             return;
         }
-        if (url.startsWith("http://localhost")) {
-            listener.getLogger().println(
-                    "Invalid Jenkins root URL. URL is pointing to http://localhost. "
-                            + "Commit status notifications are disabled until a valid root URL is configured.");
+        if (url.startsWith("http://localhost") || url.startsWith("http://unconfigured-jenkins-location")) {
+            listener.getLogger().println(INVALID_URL_LOG_MESSAGE);
             return;
         }
 
