@@ -272,6 +272,23 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .fromTemplate(API_PULL_REQUESTS_PATH)
                 .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName);
+        return getPullRequests(template);
+    }
+
+    @NonNull
+    public List<BitbucketServerPullRequest> getOutgoingOpenPullRequests(String fromRef) throws IOException, InterruptedException {
+        UriTemplate template = UriTemplate
+                .fromTemplate(API_PULL_REQUESTS_PATH)
+                .set("owner", getUserCentricOwner())
+                .set("repo", repositoryName)
+                .set("at", fromRef)
+                .set("direction", "outgoing")
+                .set("state", "OPEN");
+        return getPullRequests(template);
+    }
+
+    private List<BitbucketServerPullRequest> getPullRequests(UriTemplate template)
+            throws IOException, InterruptedException {
         List<BitbucketServerPullRequest> pullRequests = getResources(template, BitbucketServerPullRequests.class);
 
         AbstractBitbucketEndpoint endpointConfig = BitbucketEndpointConfiguration.get().findEndpoint(baseURL);
@@ -284,18 +301,6 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         }
 
         return pullRequests;
-    }
-
-    @NonNull
-    public List<BitbucketServerPullRequest> getOutgoingOpenPullRequests(String fromRef) throws IOException, InterruptedException {
-        UriTemplate template = UriTemplate
-                .fromTemplate(API_PULL_REQUESTS_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("at", fromRef)
-                .set("direction", "outgoing")
-                .set("state", "OPEN");
-        return getResources(template, BitbucketServerPullRequests.class);
     }
 
     private boolean getPullRequestCanMergeById(@NonNull Integer id) throws IOException {
