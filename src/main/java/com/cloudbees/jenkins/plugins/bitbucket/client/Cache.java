@@ -23,7 +23,12 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.client;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -35,7 +40,7 @@ public class Cache<K, V> {
 
     private final Map<K, Entry<V>> entries;
 
-    private final long expireAfterNanos;
+    private long expireAfterNanos;
 
     public Cache(final int duration, final TimeUnit unit) {
         this(duration, unit, MAX_ENTRIES_DEFAULT);
@@ -71,6 +76,10 @@ public class Cache<K, V> {
 
     public int size() {
         return entries.size();
+    }
+
+    public void setExpireDuration(final int duration, final TimeUnit unit) {
+        this.expireAfterNanos = unit.toNanos(duration);
     }
 
     private boolean isExpired(final K key) {

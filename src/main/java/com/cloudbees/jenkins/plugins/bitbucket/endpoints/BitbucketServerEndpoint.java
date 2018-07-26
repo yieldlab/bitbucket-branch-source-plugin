@@ -78,6 +78,11 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
     private BitbucketServerWebhookImplementation webhookImplementation = BitbucketServerWebhookImplementation.PLUGIN;
 
     /**
+     * Whether to always call the can merge api when retrieving pull requests.
+     */
+    private boolean callCanMerge = true;
+
+    /**
      * @param displayName   Optional name to use to describe the end-point.
      * @param serverUrl     The URL of this Bitbucket Server
      * @param manageHooks   {@code true} if and only if Jenkins is supposed to auto-manage hooks for this end-point.
@@ -92,6 +97,15 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
         this.displayName = StringUtils.isBlank(displayName)
                 ? SCMName.fromUrl(this.serverUrl, COMMON_PREFIX_HOSTNAMES)
                 : displayName.trim();
+    }
+
+    public boolean isCallCanMerge() {
+        return callCanMerge;
+    }
+
+    @DataBoundSetter
+    public void setCallCanMerge(boolean callCanMerge) {
+        this.callCanMerge = callCanMerge;
     }
 
     /**
