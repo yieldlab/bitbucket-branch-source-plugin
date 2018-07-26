@@ -25,7 +25,7 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequest;
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequestSource;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -50,12 +50,14 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
 
     private String authorLogin;
 
+    private Boolean canMerge;
+
     @JsonProperty
     @JsonDeserialize(keyAs = String.class, contentUsing = BitbucketHref.Deserializer.class)
     private Map<String, List<BitbucketHref>> links;
 
     @Override
-    public BitbucketPullRequestSource getSource() {
+    public BitbucketServerPullRequestSource getSource() {
         return source;
     }
 
@@ -112,6 +114,15 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
         } else {
             authorLogin = null;
         }
+    }
+
+    @CheckForNull
+    public Boolean isCanMerge() {
+        return canMerge;
+    }
+
+    public void setCanMerge(Boolean canMerge) {
+        this.canMerge = canMerge;
     }
 
 
