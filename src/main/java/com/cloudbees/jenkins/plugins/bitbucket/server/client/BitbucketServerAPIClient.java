@@ -651,7 +651,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private String getRequest(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget));
+        try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
             String content;
             long len = response.getEntity().getContentLength();
@@ -690,11 +690,13 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     /**
      * Create HttpClient from given host/port
-     * @param host must be of format: scheme://host:port. e.g. http://localhost:7990
+     * @param request the {@link HttpRequestBase} for which an HttpClient will be created
      * @return CloseableHttpClient
      */
-    private CloseableHttpClient getHttpClient(String host) {
+    private CloseableHttpClient getHttpClient(final HttpRequestBase request) {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+
+        final String host = getMethodHost(request);
 
         if (credentials != null) {
             CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
@@ -749,7 +751,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private int getRequestStatus(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget));
+        try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
             EntityUtils.consume(response.getEntity());
             return response.getStatusLine().getStatusCode();
@@ -795,7 +797,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         requestConfig.setSocketTimeout(60 * 1000);
         request.setConfig(requestConfig.build());
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(request));
+        try(CloseableHttpClient client = getHttpClient(request);
                 CloseableHttpResponse response = client.execute(request, context)) {
             if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
                 EntityUtils.consume(response.getEntity());
