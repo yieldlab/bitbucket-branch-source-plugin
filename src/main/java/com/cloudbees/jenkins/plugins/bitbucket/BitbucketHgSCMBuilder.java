@@ -161,22 +161,14 @@ public class BitbucketHgSCMBuilder extends MercurialSCMBuilder<BitbucketHgSCMBui
                         credentialsId(),
                         StandardCredentials.class
                 );
-        Integer protocolPortOverride = null;
         BitbucketRepositoryProtocol protocol = credentials instanceof SSHUserPrivateKey
                 ? BitbucketRepositoryProtocol.SSH
                 : BitbucketRepositoryProtocol.HTTP;
+        String cloneLink = null;
         if (protocol == BitbucketRepositoryProtocol.SSH) {
             for (BitbucketHref link : cloneLinks()) {
                 if ("ssh".equals(link.getName())) {
-                    // extract the port from this link and use that
-                    try {
-                        URI uri = new URI(link.getHref());
-                        if (uri.getPort() != -1) {
-                            protocolPortOverride = uri.getPort();
-                        }
-                    } catch (URISyntaxException e) {
-                        // ignore
-                    }
+                    cloneLink = link.getHref();
                     break;
                 }
             }
@@ -197,7 +189,7 @@ public class BitbucketHgSCMBuilder extends MercurialSCMBuilder<BitbucketHgSCMBui
         withSource(bitbucket.getRepositoryUri(
                 BitbucketRepositoryType.MERCURIAL,
                 protocol,
-                protocolPortOverride,
+                cloneLink,
                 repoOwner,
                 repository));
         AbstractBitbucketEndpoint endpoint =

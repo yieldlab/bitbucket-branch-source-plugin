@@ -23,13 +23,16 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
+import com.cloudbees.jenkins.plugins.bitbucket.server.BitbucketServerWebhookImplementation;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.Util;
 import hudson.util.FormValidation;
+
+import static java.util.Objects.requireNonNull;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import javax.annotation.Nonnull;
@@ -71,6 +74,9 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
     @NonNull
     private final String serverUrl;
 
+    @NonNull
+    private BitbucketServerWebhookImplementation webhookImplementation = BitbucketServerWebhookImplementation.PLUGIN;
+
     /**
      * Whether to always call the can merge api when retrieving pull requests.
      */
@@ -91,6 +97,16 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
         this.displayName = StringUtils.isBlank(displayName)
                 ? SCMName.fromUrl(this.serverUrl, COMMON_PREFIX_HOSTNAMES)
                 : displayName.trim();
+    }
+
+    @NonNull
+    public static BitbucketServerWebhookImplementation findWebhookImplementation(String serverUrl) {
+        final AbstractBitbucketEndpoint endpoint = BitbucketEndpointConfiguration.get().findEndpoint(serverUrl);
+        if (endpoint instanceof BitbucketServerEndpoint) {
+            return ((BitbucketServerEndpoint) endpoint).getWebhookImplementation();
+        }
+
+        return BitbucketServerWebhookImplementation.PLUGIN;
     }
 
     public boolean isCallCanMerge() {
@@ -131,6 +147,16 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
         return repoOwner.startsWith("~")
                 ? template.set("userOrProject", "users").set("owner", repoOwner.substring(1)).expand()
                 : template.set("userOrProject", "projects").set("owner", repoOwner).expand();
+    }
+
+    @NonNull
+    public BitbucketServerWebhookImplementation getWebhookImplementation() {
+        return webhookImplementation;
+    }
+
+    @DataBoundSetter
+    public void setWebhookImplementation(@NonNull BitbucketServerWebhookImplementation webhookImplementation) {
+        this.webhookImplementation = requireNonNull(webhookImplementation);
     }
 
     /**
