@@ -99,6 +99,16 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
                 : displayName.trim();
     }
 
+    @NonNull
+    public static BitbucketServerWebhookImplementation findWebhookImplementation(String serverUrl) {
+        final AbstractBitbucketEndpoint endpoint = BitbucketEndpointConfiguration.get().findEndpoint(serverUrl);
+        if (endpoint instanceof BitbucketServerEndpoint) {
+            return ((BitbucketServerEndpoint) endpoint).getWebhookImplementation();
+        }
+
+        return BitbucketServerWebhookImplementation.PLUGIN;
+    }
+
     public boolean isCallCanMerge() {
         return callCanMerge;
     }

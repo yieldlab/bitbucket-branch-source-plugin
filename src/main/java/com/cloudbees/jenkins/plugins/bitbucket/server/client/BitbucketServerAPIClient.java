@@ -39,6 +39,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.endpoints.AbstractBitbucketEndpoi
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfiguration;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketServerEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
+import com.cloudbees.jenkins.plugins.bitbucket.server.BitbucketServerWebhookImplementation;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranches;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerCommit;
@@ -49,6 +50,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.Bitbucke
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepositories;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerWebhooks;
+import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.NativeBitbucketServerWebhooks;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 import com.damnhandy.uri.template.impl.Operator;
@@ -108,6 +110,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.type.TypeReference;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Bitbucket API client.
  * Developed and test with Bitbucket 4.3.2
@@ -128,6 +132,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_COMMITS_PATH = API_REPOSITORY_PATH + "/commits{/hash}";
     private static final String API_PROJECT_PATH = API_BASE_PATH + "/projects/{owner}";
     private static final String API_COMMIT_COMMENT_PATH = API_REPOSITORY_PATH + "/commits{/hash}/comments";
+    private static final String API_WEBHOOKS_PATH = API_BASE_PATH + "/projects/{owner}/repos/{repo}/webhooks{/id}{?start,limit}";
 
     private static final String WEBHOOK_BASE_PATH = "/rest/webhook/1.0";
     private static final String WEBHOOK_REPOSITORY_PATH = WEBHOOK_BASE_PATH + "/projects/{owner}/repos/{repo}/configurations";
@@ -161,14 +166,18 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private final String baseURL;
 
+    private final BitbucketServerWebhookImplementation webhookImplementation;
+
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
-                                    @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric) {
+            @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric,
+            @NonNull BitbucketServerWebhookImplementation webhookImplementation) {
         this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(),
                 Secret.toString(creds.getPassword())) : null;
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
         this.baseURL = Util.removeTrailingSlash(baseURL);
+        this.webhookImplementation = requireNonNull(webhookImplementation);
     }
 
     /**
@@ -497,51 +506,118 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     @Override
     public void registerCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        putRequest(
-            UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .expand(),
-            JsonParser.toJson(hook)
-        );
+        switch (webhookImplementation) {
+            case PLUGIN:
+                putRequest(
+                        UriTemplate
+                            .fromTemplate(WEBHOOK_REPOSITORY_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .expand(),
+                        JsonParser.toJson(hook)
+                    );
+                break;
+
+            case NATIVE:
+                postRequest(
+                        UriTemplate
+                            .fromTemplate(API_WEBHOOKS_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .expand(),
+                        JsonParser.toJson(hook)
+                    );
+                break;
+
+            default:
+                LOGGER.log(Level.WARNING, "Cannot register {0} webhook.", webhookImplementation);
+                break;
+        }
     }
 
     @Override
     public void updateCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        postRequest(
-            UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("id", hook.getUuid())
-                .expand(), JsonParser.toJson(hook)
-        );
+        switch (webhookImplementation) {
+            case PLUGIN:
+                postRequest(
+                        UriTemplate
+                            .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand(), JsonParser.toJson(hook)
+                    );
+                break;
 
+            case NATIVE:
+                putRequest(
+                        UriTemplate
+                            .fromTemplate(API_WEBHOOKS_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand(), JsonParser.toJson(hook)
+                    );
+                break;
+
+            default:
+                LOGGER.log(Level.WARNING, "Cannot update {0} webhook.", webhookImplementation);
+                break;
+        }
     }
 
     @Override
     public void removeCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        deleteRequest(
-            UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("id", hook.getUuid())
-                .expand()
-        );
+        switch (webhookImplementation) {
+            case PLUGIN:
+                deleteRequest(
+                        UriTemplate
+                            .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand()
+                    );
+                break;
+
+            case NATIVE:
+                deleteRequest(
+                        UriTemplate
+                            .fromTemplate(API_WEBHOOKS_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand()
+                    );
+                break;
+
+            default:
+                LOGGER.log(Level.WARNING, "Cannot remove {0} webhook.", webhookImplementation);
+                break;
+        }
     }
 
     @NonNull
     @Override
     public List<? extends BitbucketWebHook> getWebHooks() throws IOException, InterruptedException {
-        String url = UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .expand();
-        String response = getRequest(url);
-        return JsonParser.toJava(response, BitbucketServerWebhooks.class);
+        switch (webhookImplementation) {
+            case PLUGIN:
+                String url = UriTemplate
+                        .fromTemplate(WEBHOOK_REPOSITORY_PATH)
+                        .set("owner", getUserCentricOwner())
+                        .set("repo", repositoryName)
+                        .expand();
+                String response = getRequest(url);
+                return JsonParser.toJava(response, BitbucketServerWebhooks.class);
+            case NATIVE:
+                UriTemplate urlTemplate = UriTemplate
+                        .fromTemplate(API_WEBHOOKS_PATH)
+                        .set("owner", getUserCentricOwner())
+                        .set("repo", repositoryName);
+                return getResources(urlTemplate, NativeBitbucketServerWebhooks.class);
+        }
+
+        return Collections.emptyList();
     }
 
     /**

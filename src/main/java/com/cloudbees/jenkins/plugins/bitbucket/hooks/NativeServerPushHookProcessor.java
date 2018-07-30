@@ -49,6 +49,12 @@ public class NativeServerPushHookProcessor extends HookProcessor {
 
     @Override
     public void process(HookEventType hookEvent, String payload, BitbucketType instanceType, String origin) {
+        return; // without a server URL, the event wouldn't match anything
+    }
+
+    @Override
+    public void process(HookEventType hookEvent, String payload, BitbucketType instanceType, String origin,
+            String serverUrl) {
         if (payload == null) {
             return;
         }
@@ -85,17 +91,19 @@ public class NativeServerPushHookProcessor extends HookProcessor {
         }
 
         for (final SCMEvent.Type type : events.keySet()) {
-            SCMHeadEvent.fireNow(new HeadEvent(type, events.get(type), origin, refsChangedEvent));
+            SCMHeadEvent.fireNow(new HeadEvent(type, events.get(type), origin, serverUrl, refsChangedEvent));
         }
     }
 
     private static final class HeadEvent extends SCMHeadEvent<Collection<NativeServerRefsChangedEvent.Change>> {
+        private final String serverUrl;
         private final NativeServerRefsChangedEvent refsChangedEvent;
         private final Map<String, List<BitbucketServerPullRequest>> cachedPullRequests = new HashMap<>(4);
 
         HeadEvent(Type type, Collection<NativeServerRefsChangedEvent.Change> payload, String origin,
-                NativeServerRefsChangedEvent refsChangedEvent) {
+                String serverUrl, NativeServerRefsChangedEvent refsChangedEvent) {
             super(type, payload, origin);
+            this.serverUrl = serverUrl;
             this.refsChangedEvent = refsChangedEvent;
         }
 
@@ -111,13 +119,12 @@ public class NativeServerPushHookProcessor extends HookProcessor {
                     && bbNav.getRepoOwner().equalsIgnoreCase(refsChangedEvent.getRepository().getOwnerName());
         }
 
-        private static boolean isServerUrlMatch(String serverUrl) {
+        private boolean isServerUrlMatch(String serverUrl) {
             if (serverUrl == null || BitbucketCloudEndpoint.SERVER_URL.equals(serverUrl)) {
                 return false; // this is Bitbucket Cloud, which is not handled by this processor
             }
 
-            // FIXME there is no way to match the URLs, since the hook event doesn't include server URLs
-            return true;
+            return serverUrl.equals(this.serverUrl);
         }
 
         @NonNull
