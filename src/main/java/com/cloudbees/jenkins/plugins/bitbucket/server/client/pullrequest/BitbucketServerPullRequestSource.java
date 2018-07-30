@@ -34,6 +34,9 @@ import org.codehaus.jackson.annotate.JsonSetter;
 
 public class BitbucketServerPullRequestSource implements BitbucketPullRequestSource {
 
+    @JsonProperty("id")
+    private String refId;
+
     @JsonProperty
     private BitbucketServerCommit commit;
 
@@ -41,6 +44,14 @@ public class BitbucketServerPullRequestSource implements BitbucketPullRequestSou
     private String branchName;
 
     private BitbucketServerRepository repository;
+
+    public String getRefId() {
+        return refId;
+    }
+
+    public void setRefId(String refId) {
+        this.refId = refId;
+    }
 
     @Override
     public BitbucketServerRepository getRepository() {

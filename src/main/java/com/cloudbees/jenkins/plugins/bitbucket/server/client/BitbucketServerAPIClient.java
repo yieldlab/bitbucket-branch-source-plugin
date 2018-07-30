@@ -296,6 +296,18 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return getPullRequests(template);
     }
 
+    @NonNull
+    public List<BitbucketServerPullRequest> getIncomingOpenPullRequests(String toRef) throws IOException, InterruptedException {
+        UriTemplate template = UriTemplate
+                .fromTemplate(API_PULL_REQUESTS_PATH)
+                .set("owner", getUserCentricOwner())
+                .set("repo", repositoryName)
+                .set("at", toRef)
+                .set("direction", "incoming")
+                .set("state", "OPEN");
+        return getPullRequests(template);
+    }
+
     private List<BitbucketServerPullRequest> getPullRequests(UriTemplate template)
             throws IOException, InterruptedException {
         List<BitbucketServerPullRequest> pullRequests = getResources(template, BitbucketServerPullRequests.class);
