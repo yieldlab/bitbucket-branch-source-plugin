@@ -77,6 +77,12 @@ public class BitbucketPullRequestValue implements BitbucketPullRequest {
         return author.username;
     }
 
+    @Override
+    public String getAuthorEmail() {
+        // return null because BitBucket Cloud hides users emails
+        return null;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
