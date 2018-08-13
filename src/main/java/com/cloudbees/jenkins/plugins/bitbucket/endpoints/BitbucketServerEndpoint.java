@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,6 +39,8 @@ import java.net.URL;
 import javax.annotation.Nonnull;
 import jenkins.scm.api.SCMName;
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -171,6 +174,16 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
         @Override
         public String getDisplayName() {
             return Messages.BitbucketServerEndpoint_displayName();
+        }
+
+        @Restricted(NoExternalUse.class)
+        public ListBoxModel doFillWebhookImplementationItems() {
+            ListBoxModel items = new ListBoxModel();
+            for (BitbucketServerWebhookImplementation webhookImplementation : BitbucketServerWebhookImplementation.values()) {
+                items.add(webhookImplementation, webhookImplementation.name());
+            }
+
+            return items;
         }
 
         /**
