@@ -5,7 +5,6 @@ import static java.util.Objects.requireNonNull;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -13,16 +12,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMNavigator;
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource;
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSourceContext;
 import com.cloudbees.jenkins.plugins.bitbucket.BranchSCMHead;
 import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
 import com.cloudbees.jenkins.plugins.bitbucket.PullRequestSCMHead;
 import com.cloudbees.jenkins.plugins.bitbucket.PullRequestSCMRevision;
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
-import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketCloudEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.BitbucketServerAPIClient;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest.BitbucketServerPullRequest;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
@@ -33,16 +29,12 @@ import com.google.common.collect.Multimap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.scm.SCM;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMHeadOrigin;
-import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 
 public class NativeServerPushHookProcessor extends HookProcessor {
@@ -93,101 +85,39 @@ public class NativeServerPushHookProcessor extends HookProcessor {
         }
 
         for (final SCMEvent.Type type : events.keySet()) {
-            SCMHeadEvent.fireNow(new HeadEvent(type, events.get(type), origin, serverUrl, refsChangedEvent));
+            SCMHeadEvent.fireNow(new HeadEvent(serverUrl, type, events.get(type), origin, refsChangedEvent));
         }
     }
 
-    private static final class HeadEvent extends SCMHeadEvent<Collection<NativeServerRefsChangedEvent.Change>> {
-        private final String serverUrl;
+    private static final class HeadEvent extends NativeServerHeadEvent<Collection<NativeServerRefsChangedEvent.Change>> {
         private final NativeServerRefsChangedEvent refsChangedEvent;
         private final Map<CacheKey, Map<String, BitbucketServerPullRequest>> cachedPullRequests = new HashMap<>();
 
-        HeadEvent(Type type, Collection<NativeServerRefsChangedEvent.Change> payload, String origin, String serverUrl,
+        HeadEvent(String serverUrl, Type type, Collection<NativeServerRefsChangedEvent.Change> payload, String origin,
             NativeServerRefsChangedEvent refsChangedEvent) {
-            super(type, payload, origin);
-            this.serverUrl = serverUrl;
+            super(serverUrl, type, payload, origin);
             this.refsChangedEvent = refsChangedEvent;
         }
 
         @Override
-        public boolean isMatch(@NonNull SCMNavigator navigator) {
-            if (!(navigator instanceof BitbucketSCMNavigator)) {
-                return false;
-            }
-
-            final BitbucketSCMNavigator bbNav = (BitbucketSCMNavigator) navigator;
-
-            return isServerUrlMatch(bbNav.getServerUrl())
-                && bbNav.getRepoOwner().equalsIgnoreCase(refsChangedEvent.getRepository().getOwnerName());
+        protected BitbucketServerRepository getRepository() {
+            return refsChangedEvent.getRepository();
         }
 
-        private boolean isServerUrlMatch(String serverUrl) {
-            if (serverUrl == null || BitbucketCloudEndpoint.SERVER_URL.equals(serverUrl)) {
-                return false; // this is Bitbucket Cloud, which is not handled by this processor
-            }
-
-            return serverUrl.equals(this.serverUrl);
-        }
-
-        @NonNull
         @Override
-        public String getSourceName() {
-            return refsChangedEvent.getRepository().getRepositoryName();
-        }
-
-        @NonNull
-        @Override
-        public Map<SCMHead, SCMRevision> heads(@NonNull SCMSource source) {
-            final BitbucketSCMSource src = getMatchingBitbucketSource(source);
-            if (src == null) {
-                return Collections.emptyMap();
-            }
-
+        protected Map<SCMHead, SCMRevision> heads(BitbucketSCMSource source) {
             final Map<SCMHead, SCMRevision> result = new HashMap<>();
-            addBranches(src, result);
+            addBranches(source, result);
             try {
-                addPullRequests(src, result);
+                addPullRequests(source, result);
             } catch (InterruptedException interrupted) {
                 LOGGER.log(Level.INFO, "Interrupted while fetching Pull Requests from Bitbucket, results may be incomplete.");
             }
             return result;
         }
 
-        @Override
-        public boolean isMatch(@NonNull SCM scm) {
-            // TODO
-            return false;
-        }
-
-        private BitbucketSCMSource getMatchingBitbucketSource(SCMSource source) {
-            if (!(source instanceof BitbucketSCMSource)) {
-                return null;
-            }
-
-            final BitbucketSCMSource src = (BitbucketSCMSource) source;
-            if (!isServerUrlMatch(src.getServerUrl())) {
-                return null;
-            }
-
-            final BitbucketRepositoryType type = BitbucketRepositoryType
-                .fromString(refsChangedEvent.getRepository().getScm());
-            if (type != BitbucketRepositoryType.GIT) {
-                LOGGER.log(Level.INFO, "Received event for unknown repository type: {0}",
-                    refsChangedEvent.getRepository().getScm());
-                return null;
-            }
-
-            return src;
-        }
-
-        private boolean eventMatchesRepo(String ownerName, String repoName) {
-            final BitbucketRepository repo = refsChangedEvent.getRepository();
-            return repo.getOwnerName().equalsIgnoreCase(ownerName)
-                && repo.getRepositoryName().equalsIgnoreCase(repoName);
-        }
-
         private void addBranches(BitbucketSCMSource src, Map<SCMHead, SCMRevision> result) {
-            if (!eventMatchesRepo(src.getRepoOwner(), src.getRepository())) {
+            if (!eventMatchesRepo(src)) {
                 return;
             }
 
@@ -211,8 +141,7 @@ public class NativeServerPushHookProcessor extends HookProcessor {
                 return; // adds/deletes won't be handled here
             }
 
-            final BitbucketSCMSourceContext ctx = new BitbucketSCMSourceContext(null, SCMHeadObserver.none())
-                .withTraits(src.getTraits());
+            final BitbucketSCMSourceContext ctx = contextOf(src);
             if (!ctx.wantPRs()) {
                 // doesn't want PRs, let the push event handle origin branches
                 return;
