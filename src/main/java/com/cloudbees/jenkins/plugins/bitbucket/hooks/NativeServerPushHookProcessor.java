@@ -145,7 +145,11 @@ public class NativeServerPushHookProcessor extends HookProcessor {
 
             final Map<SCMHead, SCMRevision> result = new HashMap<>();
             addBranches(src, result);
-            addPullRequests(src, result);
+            try {
+                addPullRequests(src, result);
+            } catch (InterruptedException interrupted) {
+                LOGGER.log(Level.INFO, "Interrupted while fetching Pull Requests from Bitbucket, results may be incomplete.");
+            }
             return result;
         }
 
@@ -202,7 +206,7 @@ public class NativeServerPushHookProcessor extends HookProcessor {
             }
         }
 
-        private void addPullRequests(BitbucketSCMSource src, Map<SCMHead, SCMRevision> result) {
+        private void addPullRequests(BitbucketSCMSource src, Map<SCMHead, SCMRevision> result) throws InterruptedException {
             if (getType() != SCMEvent.Type.UPDATED) {
                 return; // adds/deletes won't be handled here
             }
@@ -260,19 +264,29 @@ public class NativeServerPushHookProcessor extends HookProcessor {
             }
         }
 
-        private Map<String, BitbucketServerPullRequest> getPullRequests(BitbucketSCMSource src, NativeServerRefsChangedEvent.Change change) {
-            final CacheKey cacheKey = new CacheKey(src, change);
+        private Map<String, BitbucketServerPullRequest> getPullRequests(BitbucketSCMSource src, NativeServerRefsChangedEvent.Change change)
+            throws InterruptedException {
 
-            Map<String, BitbucketServerPullRequest> pullRequests = cachedPullRequests.get(cacheKey);
-            if (pullRequests != null) {
-                return pullRequests;
+            Map<String, BitbucketServerPullRequest> pullRequests;
+            final CacheKey cacheKey = new CacheKey(src, change);
+            synchronized (cachedPullRequests) {
+                pullRequests = cachedPullRequests.get(cacheKey);
+                if (pullRequests == null) {
+                    cachedPullRequests.put(cacheKey, pullRequests = loadPullRequests(src, change));
+                }
             }
+
+            return pullRequests;
+        }
+
+        private Map<String, BitbucketServerPullRequest> loadPullRequests(BitbucketSCMSource src,
+            NativeServerRefsChangedEvent.Change change) throws InterruptedException {
 
             final BitbucketServerRepository eventRepo = refsChangedEvent.getRepository();
             final BitbucketServerAPIClient api = (BitbucketServerAPIClient) src
                 .buildBitbucketClient(eventRepo.getOwnerName(), eventRepo.getRepositoryName());
 
-            pullRequests = new HashMap<>();
+            final Map<String, BitbucketServerPullRequest> pullRequests = new HashMap<>();
 
             try {
                 try {
@@ -281,7 +295,7 @@ public class NativeServerPushHookProcessor extends HookProcessor {
                     }
                 } catch (final FileNotFoundException e) {
                     throw e;
-                } catch (IOException | InterruptedException | RuntimeException e) {
+                } catch (IOException | RuntimeException e) {
                     LOGGER.log(Level.WARNING, "Failed to retrieve outgoing Pull Requests from Bitbucket", e);
                 }
 
@@ -291,33 +305,31 @@ public class NativeServerPushHookProcessor extends HookProcessor {
                     }
                 } catch (final FileNotFoundException e) {
                     throw e;
-                } catch (IOException | InterruptedException | RuntimeException e) {
+                } catch (IOException | RuntimeException e) {
                     LOGGER.log(Level.WARNING, "Failed to retrieve incoming Pull Requests from Bitbucket", e);
                 }
             } catch (FileNotFoundException e) {
                 LOGGER.log(Level.INFO, "No such Repository on Bitbucket: {0}", e.getMessage());
             }
 
-            cachedPullRequests.put(cacheKey, pullRequests);
             return pullRequests;
         }
     }
 
     private static final class CacheKey {
         @NonNull
-        private final String serverUrl, refId;
+        private final String refId;
         @CheckForNull
         private final String credentialsId;
 
         CacheKey(BitbucketSCMSource src, NativeServerRefsChangedEvent.Change change) {
-            this.serverUrl = requireNonNull(src.getServerUrl());
             this.refId = requireNonNull(change.getRefId());
             this.credentialsId = src.getCredentialsId();
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(serverUrl, credentialsId, refId);
+            return Objects.hash(credentialsId, refId);
         }
 
         @Override
@@ -328,9 +340,7 @@ public class NativeServerPushHookProcessor extends HookProcessor {
 
             if (obj instanceof CacheKey) {
                 CacheKey other = (CacheKey) obj;
-                return serverUrl.equals(other.serverUrl)
-                    && Objects.equals(credentialsId, other.credentialsId)
-                    && refId.equals(other.refId);
+                return Objects.equals(credentialsId, other.credentialsId) && refId.equals(other.refId);
             }
 
             return false;
