@@ -39,6 +39,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.endpoints.AbstractBitbucketEndpoi
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfiguration;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketServerEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
+import com.cloudbees.jenkins.plugins.bitbucket.server.BitbucketServerWebhookImplementation;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerBranches;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.branch.BitbucketServerCommit;
@@ -49,6 +50,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.Bitbucke
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepositories;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerWebhooks;
+import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.NativeBitbucketServerWebhooks;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 import com.damnhandy.uri.template.impl.Operator;
@@ -62,16 +64,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URI;
-import java.net.URL;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -108,6 +110,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.type.TypeReference;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Bitbucket API client.
  * Developed and test with Bitbucket 4.3.2
@@ -116,18 +120,19 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketServerAPIClient.class.getName());
     private static final String API_BASE_PATH = "/rest/api/1.0";
-    private static final String API_REPOSITORIES_PATH = API_BASE_PATH + "/projects/{owner}/repos{?start}";
+    private static final String API_REPOSITORIES_PATH = API_BASE_PATH + "/projects/{owner}/repos{?start,limit}";
     private static final String API_REPOSITORY_PATH = API_BASE_PATH + "/projects/{owner}/repos/{repo}";
     private static final String API_DEFAULT_BRANCH_PATH = API_REPOSITORY_PATH + "/branches/default";
     private static final String API_BRANCHES_PATH = API_REPOSITORY_PATH + "/branches{?start,limit}";
     private static final String API_TAGS_PATH = API_REPOSITORY_PATH + "/tags{?start,limit}";
-    private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit}";
+    private static final String API_PULL_REQUESTS_PATH = API_REPOSITORY_PATH + "/pull-requests{?start,limit,at,direction,state}";
     private static final String API_PULL_REQUEST_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}";
     private static final String API_PULL_REQUEST_MERGE_PATH = API_REPOSITORY_PATH + "/pull-requests/{id}/merge";
     private static final String API_BROWSE_PATH = API_REPOSITORY_PATH + "/browse{/path*}{?at}";
     private static final String API_COMMITS_PATH = API_REPOSITORY_PATH + "/commits{/hash}";
     private static final String API_PROJECT_PATH = API_BASE_PATH + "/projects/{owner}";
     private static final String API_COMMIT_COMMENT_PATH = API_REPOSITORY_PATH + "/commits{/hash}/comments";
+    private static final String API_WEBHOOKS_PATH = API_BASE_PATH + "/projects/{owner}/repos/{repo}/webhooks{/id}{?start,limit}";
 
     private static final String WEBHOOK_BASE_PATH = "/rest/webhook/1.0";
     private static final String WEBHOOK_REPOSITORY_PATH = WEBHOOK_BASE_PATH + "/projects/{owner}/repos/{repo}/configurations";
@@ -161,14 +166,18 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private final String baseURL;
 
+    private final BitbucketServerWebhookImplementation webhookImplementation;
+
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
-                                    @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric) {
+            @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric,
+            @NonNull BitbucketServerWebhookImplementation webhookImplementation) {
         this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(),
                 Secret.toString(creds.getPassword())) : null;
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
         this.baseURL = Util.removeTrailingSlash(baseURL);
+        this.webhookImplementation = requireNonNull(webhookImplementation);
     }
 
     /**
@@ -210,53 +219,47 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public String getRepositoryUri(@NonNull BitbucketRepositoryType type,
                                    @NonNull BitbucketRepositoryProtocol protocol,
-                                   @CheckForNull Integer protocolPortOverride,
+                                   @CheckForNull String cloneLink,
                                    @NonNull String owner,
                                    @NonNull String repository) {
         switch (type) {
             case GIT:
-                URL url;
+                URI baseUri;
                 try {
-                    url = new URL(baseURL);
-                } catch (MalformedURLException e) {
-                    throw new IllegalStateException("Server URL is not a valid URL", e);
+                    baseUri = new URI(baseURL);
+                } catch (URISyntaxException e) {
+                    throw new IllegalStateException("Server URL is not a valid URI", e);
                 }
-                StringBuilder result = new StringBuilder();
+
+                UriTemplate template = UriTemplate.fromTemplate("{scheme}://{+authority}{+path}{/owner,repository}.git");
+                template.set("scheme", baseUri.getScheme());
+                template.set("authority", baseUri.getRawAuthority());
+                template.set("owner", owner);
+                template.set("repository", repository);
+
                 switch (protocol) {
                     case HTTP:
-                        result.append(url.getProtocol());
-                        result.append("://");
-                        if (protocolPortOverride != null && protocolPortOverride > 0) {
-                            result.append(url.getHost());
-                            result.append(':');
-                            result.append(protocolPortOverride);
-                        } else {
-                            result.append(url.getAuthority());
-                        }
-                        result.append(url.getPath());
-                        result.append("/scm/");
-                        result.append(owner);
-                        result.append('/');
-                        result.append(repository);
-                        result.append(".git");
+                        template.set("path", Objects.toString(baseUri.getRawPath(), "") + "/scm");
                         break;
                     case SSH:
-                        result.append("ssh://git@");
-                        result.append(url.getHost());
-                        if (protocolPortOverride  != null && protocolPortOverride > 0) {
-                            result.append(':');
-                            result.append(protocolPortOverride);
+                        if (cloneLink != null) {
+                            try {
+                                URI cloneLinkUri = new URI(cloneLink);
+                                if (cloneLinkUri.getScheme() != null) {
+                                    template.set("scheme", cloneLinkUri.getScheme());
+                                }
+                                if (cloneLinkUri.getRawAuthority() != null) {
+                                    template.set("authority", cloneLinkUri.getRawAuthority());
+                                }
+                            } catch (@SuppressWarnings("unused") URISyntaxException ignored) {
+                                // fall through
+                            }
                         }
-                        result.append('/');
-                        result.append(owner);
-                        result.append('/');
-                        result.append(repository);
-                        result.append(".git");
                         break;
                     default:
                         throw new IllegalArgumentException("Unsupported repository protocol: " + protocol);
                 }
-                return result.toString();
+                return template.expand();
                 default:
                     throw new IllegalArgumentException("Unsupported repository type: " + type);
         }
@@ -271,43 +274,48 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         UriTemplate template = UriTemplate
                 .fromTemplate(API_PULL_REQUESTS_PATH)
                 .set("owner", getUserCentricOwner())
+                .set("repo", repositoryName);
+        return getPullRequests(template);
+    }
+
+    @NonNull
+    public List<BitbucketServerPullRequest> getOutgoingOpenPullRequests(String fromRef) throws IOException, InterruptedException {
+        UriTemplate template = UriTemplate
+                .fromTemplate(API_PULL_REQUESTS_PATH)
+                .set("owner", getUserCentricOwner())
                 .set("repo", repositoryName)
-                .set("start", 0)
-                .set("limit", DEFAULT_PAGE_LIMIT);
-        String url = template.expand();
+                .set("at", fromRef)
+                .set("direction", "outgoing")
+                .set("state", "OPEN");
+        return getPullRequests(template);
+    }
 
-        try {
-            List<BitbucketServerPullRequest> pullRequests = new ArrayList<>();
-            String response = getRequest(url);
-            BitbucketServerPullRequests page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
-            pullRequests.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                Integer limit = page.getLimit();
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
-                        .expand();
-                response = getRequest(url);
-                page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
-                pullRequests.addAll(page.getValues());
-            }
+    @NonNull
+    public List<BitbucketServerPullRequest> getIncomingOpenPullRequests(String toRef) throws IOException, InterruptedException {
+        UriTemplate template = UriTemplate
+                .fromTemplate(API_PULL_REQUESTS_PATH)
+                .set("owner", getUserCentricOwner())
+                .set("repo", repositoryName)
+                .set("at", toRef)
+                .set("direction", "incoming")
+                .set("state", "OPEN");
+        return getPullRequests(template);
+    }
 
-            AbstractBitbucketEndpoint endpointConfig = BitbucketEndpointConfiguration.get().findEndpoint(baseURL);
-            if (endpointConfig instanceof BitbucketServerEndpoint && ((BitbucketServerEndpoint)endpointConfig).isCallCanMerge()) {
-                // This is required for Bitbucket Server to update the refs/pull-requests/* references
-                // See https://community.atlassian.com/t5/Bitbucket-questions/Change-pull-request-refs-after-Commit-instead-of-after-Approval/qaq-p/194702#M6829
-                for (BitbucketServerPullRequest pullRequest : pullRequests) {
-                    pullRequest.setCanMerge(getPullRequestCanMergeById(Integer.parseInt(pullRequest.getId())));
-                }
+    private List<BitbucketServerPullRequest> getPullRequests(UriTemplate template)
+            throws IOException, InterruptedException {
+        List<BitbucketServerPullRequest> pullRequests = getResources(template, BitbucketServerPullRequests.class);
+
+        AbstractBitbucketEndpoint endpointConfig = BitbucketEndpointConfiguration.get().findEndpoint(baseURL);
+        if (endpointConfig instanceof BitbucketServerEndpoint && ((BitbucketServerEndpoint)endpointConfig).isCallCanMerge()) {
+            // This is required for Bitbucket Server to update the refs/pull-requests/* references
+            // See https://community.atlassian.com/t5/Bitbucket-questions/Change-pull-request-refs-after-Commit-instead-of-after-Approval/qaq-p/194702#M6829
+            for (BitbucketServerPullRequest pullRequest : pullRequests) {
+                pullRequest.setCanMerge(getPullRequestCanMergeById(Integer.parseInt(pullRequest.getId())));
             }
-            
-            return pullRequests;
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
         }
+
+        return pullRequests;
     }
 
     private boolean getPullRequestCanMergeById(@NonNull Integer id) throws IOException {
@@ -324,7 +332,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             throw new IOException("I/O error when accessing URL: " + url, e);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -459,45 +467,23 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         UriTemplate template = UriTemplate
                 .fromTemplate(apiPath)
                 .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("start", 0)
-                .set("limit", DEFAULT_PAGE_LIMIT);
-        String url = template.expand();
+                .set("repo", repositoryName);
 
-        try {
-            List<BitbucketServerBranch> branches = new ArrayList<>();
-            String response = getRequest(url);
-            BitbucketServerBranches page = JsonParser.toJava(response, BitbucketServerBranches.class);
-            branches.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                Integer limit = page.getLimit();
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
-                        .expand();
-                response = getRequest(url);
-                page = JsonParser.toJava(response, BitbucketServerBranches.class);
-                branches.addAll(page.getValues());
-            }
-            for (final BitbucketServerBranch branch: branches) {
-                branch.setTimestampClosure(new Callable<Long>() {
-                    @Override
-                    public Long call() throws Exception {
-                        BitbucketCommit commit = resolveCommit(branch.getRawNode());
-                        if (commit != null) {
-                            return commit.getDateMillis();
-                        }
-                        return 0L;
+        List<BitbucketServerBranch> branches = getResources(template, BitbucketServerBranches.class);
+        for (final BitbucketServerBranch branch : branches) {
+            branch.setTimestampClosure(new Callable<Long>() {
+                @Override
+                public Long call() throws Exception {
+                    BitbucketCommit commit = resolveCommit(branch.getRawNode());
+                    if (commit != null) {
+                        return commit.getDateMillis();
                     }
-                });
-            }
-            return branches;
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
+                    return 0L;
+                }
+            });
         }
+
+        return branches;
     }
 
     /** {@inheritDoc} */
@@ -526,51 +512,118 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     @Override
     public void registerCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        putRequest(
-            UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .expand(),
-            JsonParser.toJson(hook)
-        );
+        switch (webhookImplementation) {
+            case PLUGIN:
+                putRequest(
+                        UriTemplate
+                            .fromTemplate(WEBHOOK_REPOSITORY_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .expand(),
+                        JsonParser.toJson(hook)
+                    );
+                break;
+
+            case NATIVE:
+                postRequest(
+                        UriTemplate
+                            .fromTemplate(API_WEBHOOKS_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .expand(),
+                        JsonParser.toJson(hook)
+                    );
+                break;
+
+            default:
+                LOGGER.log(Level.WARNING, "Cannot register {0} webhook.", webhookImplementation);
+                break;
+        }
     }
 
     @Override
     public void updateCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        postRequest(
-            UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("id", hook.getUuid())
-                .expand(), JsonParser.toJson(hook)
-        );
+        switch (webhookImplementation) {
+            case PLUGIN:
+                postRequest(
+                        UriTemplate
+                            .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand(), JsonParser.toJson(hook)
+                    );
+                break;
 
+            case NATIVE:
+                putRequest(
+                        UriTemplate
+                            .fromTemplate(API_WEBHOOKS_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand(), JsonParser.toJson(hook)
+                    );
+                break;
+
+            default:
+                LOGGER.log(Level.WARNING, "Cannot update {0} webhook.", webhookImplementation);
+                break;
+        }
     }
 
     @Override
     public void removeCommitWebHook(BitbucketWebHook hook) throws IOException, InterruptedException {
-        deleteRequest(
-            UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("id", hook.getUuid())
-                .expand()
-        );
+        switch (webhookImplementation) {
+            case PLUGIN:
+                deleteRequest(
+                        UriTemplate
+                            .fromTemplate(WEBHOOK_REPOSITORY_CONFIG_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand()
+                    );
+                break;
+
+            case NATIVE:
+                deleteRequest(
+                        UriTemplate
+                            .fromTemplate(API_WEBHOOKS_PATH)
+                            .set("owner", getUserCentricOwner())
+                            .set("repo", repositoryName)
+                            .set("id", hook.getUuid())
+                            .expand()
+                    );
+                break;
+
+            default:
+                LOGGER.log(Level.WARNING, "Cannot remove {0} webhook.", webhookImplementation);
+                break;
+        }
     }
 
     @NonNull
     @Override
     public List<? extends BitbucketWebHook> getWebHooks() throws IOException, InterruptedException {
-        String url = UriTemplate
-                .fromTemplate(WEBHOOK_REPOSITORY_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .expand();
-        String response = getRequest(url);
-        return JsonParser.toJava(response, BitbucketServerWebhooks.class);
+        switch (webhookImplementation) {
+            case PLUGIN:
+                String url = UriTemplate
+                        .fromTemplate(WEBHOOK_REPOSITORY_PATH)
+                        .set("owner", getUserCentricOwner())
+                        .set("repo", repositoryName)
+                        .expand();
+                String response = getRequest(url);
+                return JsonParser.toJava(response, BitbucketServerWebhooks.class);
+            case NATIVE:
+                UriTemplate urlTemplate = UriTemplate
+                        .fromTemplate(API_WEBHOOKS_PATH)
+                        .set("owner", getUserCentricOwner())
+                        .set("repo", repositoryName);
+                return getResources(urlTemplate, NativeBitbucketServerWebhooks.class);
+        }
+
+        return Collections.emptyList();
     }
 
     /**
@@ -602,38 +655,22 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             throws IOException, InterruptedException {
         UriTemplate template = UriTemplate
                 .fromTemplate(API_REPOSITORIES_PATH)
-                .set("owner", getUserCentricOwner())
-                .set("start", 0);
-        String url = template.expand();
+                .set("owner", getUserCentricOwner());
 
+        List<BitbucketServerRepository> repositories;
         try {
-            List<BitbucketServerRepository> repositories = new ArrayList<>();
-            String response = getRequest(url);
-            BitbucketServerRepositories page = JsonParser.toJava(response, BitbucketServerRepositories.class);
-            repositories.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .expand();
-                response = getRequest(url);
-                page = JsonParser.toJava(response, BitbucketServerRepositories.class);
-                repositories.addAll(page.getValues());
-            }
-            Collections.sort(repositories, new Comparator<BitbucketServerRepository>() {
-                @Override
-                public int compare(BitbucketServerRepository o1, BitbucketServerRepository o2) {
-                    return o1.getRepositoryName().compareTo(o2.getRepositoryName());
-                }
-            });
-            return repositories;
+            repositories = getResources(template, BitbucketServerRepositories.class);
         } catch (FileNotFoundException e) {
             return new ArrayList<>();
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
         }
+        Collections.sort(repositories, new Comparator<BitbucketServerRepository>() {
+            @Override
+            public int compare(BitbucketServerRepository o1, BitbucketServerRepository o2) {
+                return o1.getRepositoryName().compareTo(o2.getRepositoryName());
+            }
+        });
+
+        return repositories;
     }
 
     /** {@inheritDoc} */
@@ -646,6 +683,36 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public boolean isPrivate() throws IOException {
         return getRepository().isPrivate();
+    }
+
+    private <V> List<V> getResources(UriTemplate template, Class<? extends PagedApiResponse<V>> clazz) throws IOException, InterruptedException {
+        template.set("start", 0).set("limit", DEFAULT_PAGE_LIMIT);
+        String url = template.expand();
+
+        try {
+            List<V> resources = new ArrayList<>();
+            String response = getRequest(url);
+            PagedApiResponse<V> page = JsonParser.toJava(response, clazz);
+            resources.addAll(page.getValues());
+            while (!page.isLastPage()) {
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
+                Integer limit = page.getLimit();
+                url = template
+                        .set("start", page.getNextPageStart())
+                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
+                        .expand();
+                response = getRequest(url);
+                page = JsonParser.toJava(response, clazz);
+                resources.addAll(page.getValues());
+            }
+            return resources;
+        } catch (FileNotFoundException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new IOException("I/O error when accessing URL: " + url, e);
+        }
     }
 
     private String getRequest(String path) throws IOException {

@@ -27,6 +27,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryProtocol;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketCloudApiClient;
+import com.cloudbees.jenkins.plugins.bitbucket.server.BitbucketServerWebhookImplementation;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.BitbucketServerAPIClient;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -50,7 +51,8 @@ public class UriResolverTest {
                 "user1",
                 "repo1"
         ));
-        api = new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false);
+        api = new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false,
+                BitbucketServerWebhookImplementation.PLUGIN);
         assertEquals("http://localhost:1234/scm/user2/repo2.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.HTTP,
@@ -58,8 +60,18 @@ public class UriResolverTest {
                 "user2",
                 "repo2"
         ));
-        api = new BitbucketServerAPIClient("http://192.168.1.100:1234", "test", null, null, false);
+        api = new BitbucketServerAPIClient("http://192.168.1.100:1234", "test", null, null, false,
+                BitbucketServerWebhookImplementation.PLUGIN);
         assertEquals("http://192.168.1.100:1234/scm/user2/repo2.git", api.getRepositoryUri(
+                BitbucketRepositoryType.GIT,
+                BitbucketRepositoryProtocol.HTTP,
+                null,
+                "user2",
+                "repo2"
+        ));
+        api = new BitbucketServerAPIClient("http://devtools.test:1234/git/web/", "test", null, null, false,
+                BitbucketServerWebhookImplementation.PLUGIN);
+        assertEquals("http://devtools.test:1234/git/web/scm/user2/repo2.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.HTTP,
                 null,
@@ -85,19 +97,21 @@ public class UriResolverTest {
                 "user1",
                 "repo1"
         ));
-        api = new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false);
+        api = new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false,
+                BitbucketServerWebhookImplementation.PLUGIN);
         assertEquals("ssh://git@localhost:7999/user2/repo2.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.SSH,
-                7999,
+                "ssh://git@localhost:7999/user1/repo1.git",
                 "user2",
                 "repo2"
         ));
-        api = new BitbucketServerAPIClient("http://myserver", "test", null, null, false);
+        api = new BitbucketServerAPIClient("http://myserver", "test", null, null, false,
+                BitbucketServerWebhookImplementation.PLUGIN);
         assertEquals("ssh://git@myserver:7999/user2/repo2.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.SSH,
-                7999,
+                "ssh://git@myserver:7999/user1/repo1.git",
                 "user2",
                 "repo2"
         ));
@@ -105,13 +119,15 @@ public class UriResolverTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void httpUriResolverIllegalStates() throws Exception {
-        new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false)
+        new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false,
+                BitbucketServerWebhookImplementation.PLUGIN)
                 .getRepositoryUri(BitbucketRepositoryType.MERCURIAL, BitbucketRepositoryProtocol.HTTP, null, "user1", "repo1");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sshUriResolverIllegalStates() throws Exception {
-        new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false)
+        new BitbucketServerAPIClient("http://localhost:1234", "test", null, null, false,
+                BitbucketServerWebhookImplementation.PLUGIN)
                 .getRepositoryUri(BitbucketRepositoryType.MERCURIAL, BitbucketRepositoryProtocol.SSH, null, "user1",
                         "repo1");
     }
