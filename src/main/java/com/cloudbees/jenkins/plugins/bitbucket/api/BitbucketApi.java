@@ -57,7 +57,7 @@ public interface BitbucketApi {
      *
      * @param type the type of repository.
      * @param protocol the protocol to access the repository with.
-     * @param protocolPortOverride the port to override or {@code null} to use the default.
+     * @param cloneLink the actual clone link for the repository as sent by the server, or {@code null} if unknown.
      * @param owner the owner
      * @param repository the repository.
      * @return the URI.
@@ -65,7 +65,7 @@ public interface BitbucketApi {
     @NonNull
     String getRepositoryUri(@NonNull BitbucketRepositoryType type,
                             @NonNull BitbucketRepositoryProtocol protocol,
-                            @CheckForNull Integer protocolPortOverride,
+                            @CheckForNull String cloneLink,
                             @NonNull String owner,
                             @NonNull String repository);
 

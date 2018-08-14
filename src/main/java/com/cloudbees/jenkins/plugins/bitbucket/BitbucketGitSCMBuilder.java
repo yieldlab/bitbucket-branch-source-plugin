@@ -170,22 +170,14 @@ public class BitbucketGitSCMBuilder extends GitSCMBuilder<BitbucketGitSCMBuilder
                         credentialsId(),
                         StandardCredentials.class
                 );
-        Integer protocolPortOverride = null;
         BitbucketRepositoryProtocol protocol = credentials instanceof SSHUserPrivateKey
                 ? BitbucketRepositoryProtocol.SSH
                 : BitbucketRepositoryProtocol.HTTP;
+        String cloneLink = null;
         if (protocol == BitbucketRepositoryProtocol.SSH) {
             for (BitbucketHref link : cloneLinks()) {
                 if ("ssh".equals(link.getName())) {
-                    // extract the port from this link and use that
-                    try {
-                        URI uri = new URI(link.getHref());
-                        if (uri.getPort() != -1) {
-                            protocolPortOverride = uri.getPort();
-                        }
-                    } catch (URISyntaxException e) {
-                        // ignore
-                    }
+                    cloneLink = link.getHref();
                     break;
                 }
             }
@@ -206,7 +198,7 @@ public class BitbucketGitSCMBuilder extends GitSCMBuilder<BitbucketGitSCMBuilder
         withRemote(bitbucket.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 protocol,
-                protocolPortOverride,
+                cloneLink,
                 repoOwner,
                 repository));
         AbstractBitbucketEndpoint endpoint =
@@ -233,7 +225,7 @@ public class BitbucketGitSCMBuilder extends GitSCMBuilder<BitbucketGitSCMBuilder
                         bitbucket.getRepositoryUri(
                                 BitbucketRepositoryType.GIT,
                                 protocol,
-                                protocolPortOverride,
+                                cloneLink,
                                 scmSource().getRepoOwner(),
                                 scmSource().getRepository()),
                         "+refs/heads/" + name + ":refs/remotes/@{remote}/" + localName);
