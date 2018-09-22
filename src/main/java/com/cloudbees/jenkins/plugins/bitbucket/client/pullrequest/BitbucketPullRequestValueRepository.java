@@ -28,7 +28,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequestSource;
 import com.cloudbees.jenkins.plugins.bitbucket.client.branch.BitbucketCloudBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.client.branch.BitbucketCloudCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudRepository;
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BitbucketPullRequestValueRepository implements BitbucketPullRequestSource {
     private BitbucketCloudRepository repository;
