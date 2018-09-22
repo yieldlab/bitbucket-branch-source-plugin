@@ -25,7 +25,6 @@ package com.cloudbees.jenkins.plugins.bitbucket;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBuildStatus;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 

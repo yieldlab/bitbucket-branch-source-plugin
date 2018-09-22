@@ -27,14 +27,12 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketCloudApiClient;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 
-import java.util.List;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.Util;
 import hudson.util.FormValidation;
 
+import java.util.List;
 import javax.annotation.Nonnull;
 import org.kohsuke.stapler.DataBoundConstructor;
 

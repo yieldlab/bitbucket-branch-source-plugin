@@ -28,7 +28,6 @@ import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.Util;
 import hudson.util.FormValidation;
 import java.net.MalformedURLException;
 import java.net.URL;
