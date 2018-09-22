@@ -50,6 +50,8 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
     private String link;
 
     private String authorLogin;
+
+    private String authorEmail;
     
     private Boolean canMerge;
 
@@ -108,12 +110,18 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
         return authorLogin;
     }
 
+    public String getAuthorEmail() {
+        return authorEmail;
+    }
+
     @JsonProperty
     public void setAuthor(Author author) {
         if (author != null && author.getUser() != null) {
             authorLogin = author.getUser().getDisplayName();
+            authorEmail = author.getUser().getEmailAddress();
         } else {
             authorLogin = null;
+            authorEmail = null;
         }
     }
 
