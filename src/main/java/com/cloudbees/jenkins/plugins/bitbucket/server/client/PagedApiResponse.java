@@ -2,7 +2,7 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.client;
 
 import java.util.List;
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class PagedApiResponse<V> {
 

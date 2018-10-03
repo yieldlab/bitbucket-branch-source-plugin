@@ -1,6 +1,6 @@
 package com.cloudbees.jenkins.plugins.bitbucket.server.client.pullrequest;
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BitbucketServerPullRequestCanMerge {
     private boolean canMerge;

@@ -26,10 +26,10 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.events;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPushEvent;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonProperty;
 
 public class BitbucketServerPushEvent implements BitbucketPushEvent{
 

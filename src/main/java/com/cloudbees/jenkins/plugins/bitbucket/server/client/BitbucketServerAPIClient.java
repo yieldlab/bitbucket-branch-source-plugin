@@ -54,6 +54,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.NativeBi
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 import com.damnhandy.uri.template.impl.Operator;
+import com.fasterxml.jackson.core.type.TypeReference;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -108,7 +109,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-import org.codehaus.jackson.type.TypeReference;
 
 import static java.util.Objects.requireNonNull;
 
@@ -724,7 +724,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private String getRequest(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget));
+        try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
             String content;
             long len = response.getEntity().getContentLength();
@@ -763,11 +763,19 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     /**
      * Create HttpClient from given host/port
-     * @param host must be of format: scheme://host:port. e.g. http://localhost:7990
+     * @param request the {@link HttpRequestBase} for which an HttpClient will be created
      * @return CloseableHttpClient
      */
-    private CloseableHttpClient getHttpClient(String host) {
+    private CloseableHttpClient getHttpClient(final HttpRequestBase request) {
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+
+        RequestConfig.Builder requestConfig = RequestConfig.custom();
+        requestConfig.setConnectTimeout(10 * 1000);
+        requestConfig.setConnectionRequestTimeout(60 * 1000);
+        requestConfig.setSocketTimeout(60 * 1000);
+        request.setConfig(requestConfig.build());
+
+        final String host = getMethodHost(request);
 
         if (credentials != null) {
             CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
@@ -822,7 +830,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private int getRequestStatus(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(httpget));
+        try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
             EntityUtils.consume(response.getEntity());
             return response.getStatusLine().getStatusCode();
@@ -862,13 +870,8 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     private String doRequest(HttpRequestBase request) throws IOException {
-        RequestConfig.Builder requestConfig = RequestConfig.custom();
-        requestConfig.setConnectTimeout(10 * 1000);
-        requestConfig.setConnectionRequestTimeout(60 * 1000);
-        requestConfig.setSocketTimeout(60 * 1000);
-        request.setConfig(requestConfig.build());
 
-        try(CloseableHttpClient client = getHttpClient(getMethodHost(request));
+        try(CloseableHttpClient client = getHttpClient(request);
                 CloseableHttpResponse response = client.execute(request, context)) {
             if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
                 EntityUtils.consume(response.getEntity());

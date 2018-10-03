@@ -45,6 +45,7 @@ import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 
 /**
@@ -54,42 +55,63 @@ import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
  */
 public class BitbucketBuildStatusNotifications {
 
+    private static String getRootURL(@NonNull Run<?, ?> build) {
+        JenkinsLocationConfiguration cfg = JenkinsLocationConfiguration.get();
+
+        if (cfg == null || cfg.getUrl() == null) {
+            throw new IllegalStateException("Could not determine Jenkins URL.");
+        }
+
+        String url = DisplayURLProvider.get().getRunURL(build);
+
+        if (url.startsWith("http://localhost")) {
+            throw new IllegalStateException("Jenkins URL cannot start with http://localhost");
+        }
+        if (url.equals("http://unconfigured-jenkins-location/")) {
+            throw new IllegalStateException("Could not determine Jenkins URL.");
+        }
+
+        return url;
+    }
+
     private static void createStatus(@NonNull Run<?, ?> build, @NonNull TaskListener listener,
                                      @NonNull BitbucketApi bitbucket, @NonNull String hash)
             throws IOException, InterruptedException {
-        JenkinsLocationConfiguration cfg = JenkinsLocationConfiguration.get();
-        if (cfg == null || cfg.getUrl() == null) {
-            listener.getLogger().println(
-                    "Can not determine Jenkins root URL. Commit status notifications are disabled until a root URL is"
-                            + " configured in Jenkins global configuration.");
-            return;
-        }
+
         String url;
         try {
-            url = DisplayURLProvider.get().getRunURL(build);
+            url = getRootURL(build);
         } catch (IllegalStateException e) {
-            listener.getLogger().println(
-                    "Can not determine Jenkins root URL. Commit status notifications are disabled until a root URL is"
-                            + " configured in Jenkins global configuration.");
+            listener.getLogger().println("Can not determine Jenkins root URL. " +
+                    "Commit status notifications are disabled until a root URL is " +
+                    "configured in Jenkins global configuration.");
             return;
         }
+
         String key = build.getParent().getFullName(); // use the job full name as the key for the status
         String name = build.getFullDisplayName(); // use the build number as the display name of the status
         BitbucketBuildStatus status;
         Result result = build.getResult();
+        String buildDescription = build.getDescription();
+        String statusDescription;
+        String state;
         if (Result.SUCCESS.equals(result)) {
-            status = new BitbucketBuildStatus(hash, "This commit looks good", "SUCCESSFUL", url, key, name);
+            statusDescription = StringUtils.defaultIfBlank(buildDescription, "This commit looks good.");
+            state = "SUCCESSFUL";
         } else if (Result.UNSTABLE.equals(result)) {
-            status = new BitbucketBuildStatus(hash, "This commit has test failures", "FAILED", url, key, name);
+            statusDescription = StringUtils.defaultIfBlank(buildDescription, "This commit has test failures.");
+            state = "FAILED";
         } else if (Result.FAILURE.equals(result)) {
-            status = new BitbucketBuildStatus(hash, "There was a failure building this commit", "FAILED", url, key,
-                    name);
+            statusDescription = StringUtils.defaultIfBlank(buildDescription, "There was a failure building this commit.");
+            state = "FAILED";
         } else if (result != null) { // ABORTED etc.
-            status = new BitbucketBuildStatus(hash, "Something is wrong with the build of this commit", "FAILED", url,
-                    key, name);
+            statusDescription = StringUtils.defaultIfBlank(buildDescription, "Something is wrong with the build of this commit.");
+            state = "FAILED";
         } else {
-            status = new BitbucketBuildStatus(hash, "The tests have started...", "INPROGRESS", url, key, name);
+            statusDescription = StringUtils.defaultIfBlank(buildDescription, "The build is in progress...");
+            state = "INPROGRESS";
         }
+        status = new BitbucketBuildStatus(hash, statusDescription, state, url, key, name);
         new BitbucketChangesetCommentNotifier(bitbucket).buildStatus(status);
         if (result != null) {
             listener.getLogger().println("[Bitbucket] Build result notified");

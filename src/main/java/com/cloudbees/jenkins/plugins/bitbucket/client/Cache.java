@@ -82,6 +82,20 @@ public class Cache<K, V> {
         this.expireAfterNanos = unit.toNanos(duration);
     }
 
+    public Stat stats() {
+        final List<Long> durations = new ArrayList<>();
+        if (entries.size() > 0) {
+            for (final Entry<V> e : entries.values()) {
+                durations.add(System.nanoTime() - e.nanos);
+            }
+            Collections.sort(durations);
+        } else {
+            durations.add(0L);
+            durations.add(0L);
+        }
+        return new Stat(entries.size(), durations.get(0), durations.get(durations.size() - 1));
+    }
+
     private boolean isExpired(final K key) {
         final Entry<V> entry = entries.get(key);
         return entry != null && System.nanoTime() - entry.nanos > expireAfterNanos;
@@ -120,4 +134,47 @@ public class Cache<K, V> {
         }
     }
 
+    public static class Stat {
+        private final int count;
+
+        private final long minDuration;
+
+        private final long maxDuration;
+
+        public Stat(final int count, final long minDuration, final long maxDuration) {
+            this.count = count;
+            this.minDuration = minDuration;
+            this.maxDuration = maxDuration;
+        }
+
+        public int getCount() {
+            return count;
+        }
+
+        public long getMinDuration() {
+            return minDuration;
+        }
+
+        public long getMaxDuration() {
+            return maxDuration;
+        }
+
+        @Override
+        public String toString() {
+            if (count == 0) {
+                return "No entry.";
+            } else {
+                final StringBuilder builder = new StringBuilder();
+                if (count == 1) {
+                    builder.append("1 entry, since ").append(NANOSECONDS.toMinutes(minDuration)).append(
+                            " minutes");
+                } else {
+                    builder.append(count).append(" entries, since ").append(
+                            NANOSECONDS.toMinutes(minDuration)).append(" (youngest) to ").append(
+                                    NANOSECONDS.toMinutes(maxDuration)).append(" (oldest) minutes.");
+                }
+                return builder.toString();
+            }
+        }
+    }
 }

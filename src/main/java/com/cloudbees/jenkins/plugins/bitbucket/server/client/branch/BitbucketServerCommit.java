@@ -24,7 +24,7 @@
 package com.cloudbees.jenkins.plugins.bitbucket.server.client.branch;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BitbucketServerCommit implements BitbucketCommit {
 

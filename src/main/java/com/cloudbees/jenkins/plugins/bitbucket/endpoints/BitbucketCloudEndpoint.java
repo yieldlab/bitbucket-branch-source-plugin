@@ -27,14 +27,12 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketCloudApiClient;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 
-import java.util.List;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.Util;
 import hudson.util.FormValidation;
 
+import java.util.List;
 import javax.annotation.Nonnull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -145,6 +143,15 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
         @Override
         public String getDisplayName() {
             return Messages.BitbucketCloudEndpoint_displayName();
+        }
+
+        public FormValidation doShowStats() {
+            List<String> stats = BitbucketCloudApiClient.stats();
+            StringBuilder builder = new StringBuilder();
+            for (String stat : stats) {
+                builder.append(stat).append("<br>");
+            }
+            return FormValidation.okWithMarkup(builder.toString());
         }
 
         public FormValidation doClear() {

@@ -52,6 +52,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepos
 import com.cloudbees.jenkins.plugins.bitbucket.filesystem.BitbucketSCMFile;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
+import com.fasterxml.jackson.core.type.TypeReference;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
@@ -71,7 +72,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -79,7 +79,6 @@ import jenkins.scm.api.SCMFile;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -111,7 +110,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-import org.codehaus.jackson.type.TypeReference;
 
 public class BitbucketCloudApiClient implements BitbucketApi {
     private static final Logger LOGGER = Logger.getLogger(BitbucketCloudApiClient.class.getName());
@@ -136,6 +134,13 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, HOURS);
     private transient BitbucketRepository cachedRepository;
     private transient String cachedDefaultBranch;
+
+    public static List<String> stats() {
+        List<String> stats = new ArrayList<>();
+        stats.add("Team: " + cachedTeam.stats().toString());
+        stats.add("Repositories : " + cachedRepositories.stats().toString());
+        return stats;
+    }
 
     public static void clearCaches() {
         cachedTeam.evictAll();

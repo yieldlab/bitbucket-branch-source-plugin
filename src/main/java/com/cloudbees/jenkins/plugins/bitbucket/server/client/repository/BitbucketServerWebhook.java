@@ -2,11 +2,11 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.client.repository;
 
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.Collections;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 public class BitbucketServerWebhook implements BitbucketWebHook {
     @JsonProperty("id")

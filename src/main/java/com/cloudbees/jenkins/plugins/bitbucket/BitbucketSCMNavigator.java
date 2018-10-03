@@ -466,21 +466,20 @@ public class BitbucketSCMNavigator extends SCMNavigator {
         try (final BitbucketSCMNavigatorRequest request = new BitbucketSCMNavigatorContext().withTraits(traits)
                 .newRequest(this, observer)) {
             SourceFactory sourceFactory = new SourceFactory(request);
-            WitnessImpl witness = new WitnessImpl(listener);
+            WitnessImpl witness = new WitnessImpl(request, listener);
 
             BitbucketApi bitbucket = BitbucketApiFactory.newInstance(serverUrl, credentials, repoOwner, null);
             BitbucketTeam team = bitbucket.getTeam();
-            List<? extends BitbucketRepository> repositories;
             if (team != null) {
                 // Navigate repositories of the team
                 listener.getLogger().format("Looking up repositories of team %s%n", repoOwner);
-                repositories = bitbucket.getRepositories();
+                request.withRepositories(bitbucket.getRepositories());
             } else {
                 // Navigate the repositories of the repoOwner as a user
                 listener.getLogger().format("Looking up repositories of user %s%n", repoOwner);
-                repositories = bitbucket.getRepositories(UserRoleInRepository.OWNER);
+                request.withRepositories(bitbucket.getRepositories(UserRoleInRepository.OWNER));
             }
-            for (BitbucketRepository repo : repositories) {
+            for (BitbucketRepository repo : request.repositories()) {
                 if (request.process(repo.getRepositoryName(), sourceFactory, null, witness)) {
                     listener.getLogger().format(
                             "%d repositories were processed (query completed)%n", witness.getCount()
@@ -844,19 +843,24 @@ public class BitbucketSCMNavigator extends SCMNavigator {
 
     private static class WitnessImpl implements SCMNavigatorRequest.Witness {
         private int count;
+
+        private BitbucketSCMNavigatorRequest request;
         private final TaskListener listener;
 
-        public WitnessImpl(TaskListener listener) {
+        public WitnessImpl(BitbucketSCMNavigatorRequest request, TaskListener listener) {
+            this.request = request;
             this.listener = listener;
         }
 
         @Override
         public void record(@NonNull String name, boolean isMatch) {
+            BitbucketRepository repository = this.request.getBitbucketRepository(name);
+
             if (isMatch) {
-                listener.getLogger().format("Proposing %s%n", name);
+                listener.getLogger().format("Proposing %s%n", repository.getFullName());
                 count++;
             } else {
-                listener.getLogger().format("Ignoring %s%n", name);
+                listener.getLogger().format("Ignoring %s%n", repository.getFullName());
             }
         }
 
