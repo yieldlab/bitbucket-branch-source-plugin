@@ -216,16 +216,18 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 }
 
                 UriTemplate template = UriTemplate.fromTemplate("{scheme}://{+authority}{+path}{/owner,repository}.git");
-                template.set("scheme", baseUri.getScheme());
-                template.set("authority", baseUri.getRawAuthority());
                 template.set("owner", owner);
                 template.set("repository", repository);
 
                 switch (protocol) {
                     case HTTP:
+                        template.set("scheme", baseUri.getScheme());
+                        template.set("authority", baseUri.getRawAuthority());
                         template.set("path", Objects.toString(baseUri.getRawPath(), "") + "/scm");
                         break;
                     case SSH:
+                        template.set("scheme", BitbucketRepositoryProtocol.SSH.getType());
+                        template.set("authority", "git@" + baseUri.getHost());
                         if (cloneLink != null) {
                             try {
                                 URI cloneLinkUri = new URI(cloneLink);

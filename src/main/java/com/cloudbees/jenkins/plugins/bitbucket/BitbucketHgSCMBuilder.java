@@ -44,8 +44,6 @@ import hudson.plugins.mercurial.MercurialSCMBuilder;
 import hudson.plugins.mercurial.MercurialSCMSource;
 import hudson.plugins.mercurial.browser.BitBucket;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -164,15 +162,6 @@ public class BitbucketHgSCMBuilder extends MercurialSCMBuilder<BitbucketHgSCMBui
         BitbucketRepositoryProtocol protocol = credentials instanceof SSHUserPrivateKey
                 ? BitbucketRepositoryProtocol.SSH
                 : BitbucketRepositoryProtocol.HTTP;
-        String cloneLink = null;
-        if (protocol == BitbucketRepositoryProtocol.SSH) {
-            for (BitbucketHref link : cloneLinks()) {
-                if ("ssh".equals(link.getName())) {
-                    cloneLink = link.getHref();
-                    break;
-                }
-            }
-        }
         SCMHead h = head();
         String repoOwner;
         String repository;
@@ -185,6 +174,14 @@ public class BitbucketHgSCMBuilder extends MercurialSCMBuilder<BitbucketHgSCMBui
             // head instanceof BranchSCMHead
             repoOwner = scmSource.getRepoOwner();
             repository = scmSource.getRepository();
+        }
+
+        String cloneLink = null;
+        for (BitbucketHref link : cloneLinks()) {
+            if (protocol.getType().equals(link.getName())) {
+                cloneLink = link.getHref();
+                break;
+            }
         }
         withSource(bitbucket.getRepositoryUri(
                 BitbucketRepositoryType.MERCURIAL,

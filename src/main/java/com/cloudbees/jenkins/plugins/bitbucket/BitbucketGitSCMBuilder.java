@@ -41,8 +41,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.browser.BitbucketWeb;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -173,15 +171,6 @@ public class BitbucketGitSCMBuilder extends GitSCMBuilder<BitbucketGitSCMBuilder
         BitbucketRepositoryProtocol protocol = credentials instanceof SSHUserPrivateKey
                 ? BitbucketRepositoryProtocol.SSH
                 : BitbucketRepositoryProtocol.HTTP;
-        String cloneLink = null;
-        if (protocol == BitbucketRepositoryProtocol.SSH) {
-            for (BitbucketHref link : cloneLinks()) {
-                if ("ssh".equals(link.getName())) {
-                    cloneLink = link.getHref();
-                    break;
-                }
-            }
-        }
         SCMHead h = head();
         String repoOwner;
         String repository;
@@ -194,6 +183,14 @@ public class BitbucketGitSCMBuilder extends GitSCMBuilder<BitbucketGitSCMBuilder
             // head instanceof BranchSCMHead
             repoOwner = scmSource.getRepoOwner();
             repository = scmSource.getRepository();
+        }
+
+        String cloneLink = null;
+        for (BitbucketHref link : cloneLinks()) {
+            if (protocol.getType().equals(link.getName())) {
+                cloneLink = link.getHref();
+                break;
+            }
         }
         withRemote(bitbucket.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
