@@ -131,6 +131,8 @@ public class BitbucketBuildStatusNotifications {
         }
         if (revision instanceof BitbucketSCMSource.MercurialRevision) {
             return ((BitbucketSCMSource.MercurialRevision) revision).getHash();
+        } else if (revision instanceof MercurialSCMSource.MercurialRevision) {
+            return ((MercurialSCMSource.MercurialRevision) revision).getHash();
         } else if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
             return ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash();
         }
