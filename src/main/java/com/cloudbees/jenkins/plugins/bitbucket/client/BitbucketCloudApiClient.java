@@ -216,7 +216,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     public String getRepositoryUri(@NonNull BitbucketRepositoryType type,
                                    @NonNull BitbucketRepositoryProtocol protocol,
-                                   @CheckForNull Integer protocolPortOverride,
+                                   @CheckForNull String cloneLink,
                                    @NonNull String owner,
                                    @NonNull String repository) {
         // ignore port override on Cloud
