@@ -41,12 +41,16 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public interface BitbucketApi {
 
     /**
+     * Returns the owner name for the repository.
+     * 
      * @return the repository owner name.
      */
     @NonNull
     String getOwner();
 
     /**
+     * Returns the repository name.
+     * 
      * @return the repository name.
      */
     @CheckForNull
@@ -57,15 +61,15 @@ public interface BitbucketApi {
      *
      * @param type the type of repository.
      * @param protocol the protocol to access the repository with.
-     * @param protocolPortOverride the port to override or {@code null} to use the default.
+     * @param cloneLink the actual clone link for the repository as sent by the server, or {@code null} if unknown.
      * @param owner the owner
      * @param repository the repository.
-     * @return the URI.
+     * @return the repository URI.
      */
     @NonNull
     String getRepositoryUri(@NonNull BitbucketRepositoryType type,
                             @NonNull BitbucketRepositoryProtocol protocol,
-                            @CheckForNull Integer protocolPortOverride,
+                            @CheckForNull String cloneLink,
                             @NonNull String owner,
                             @NonNull String repository);
 
@@ -264,21 +268,25 @@ public interface BitbucketApi {
      */
     boolean isPrivate() throws IOException, InterruptedException;
     
-	/**
-	 * @param parent
-	 * @return
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
+    /**
+     * Returns a list of all children file for the given folder.
+     * 
+     * @param parent to list
+     * @return a iterable of {@link SCMFile} children of the given folder.
+     * @throws IOException if there was a network communications error.
+     * @throws InterruptedException if interrupted while waiting on remote communications.
+     */
 	@Restricted(NoExternalUse.class)
 	public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException;
 	
-	/**
-	 * @param file
-	 * @return
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
+    /**
+     * Return an input stream for the given file.
+     * 
+     * @param file and instance of SCM file
+     * @return the stream of the given {@link SCMFile}
+     * @throws IOException if there was a network communications error.
+     * @throws InterruptedException if interrupted while waiting on remote communications.
+     */
     @Restricted(NoExternalUse.class)
 	public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException;
 }

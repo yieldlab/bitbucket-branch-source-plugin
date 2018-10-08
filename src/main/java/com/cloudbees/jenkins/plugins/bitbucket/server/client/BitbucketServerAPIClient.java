@@ -67,16 +67,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URI;
-import java.net.URL;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -224,53 +224,49 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public String getRepositoryUri(@NonNull BitbucketRepositoryType type,
                                    @NonNull BitbucketRepositoryProtocol protocol,
-                                   @CheckForNull Integer protocolPortOverride,
+                                   @CheckForNull String cloneLink,
                                    @NonNull String owner,
                                    @NonNull String repository) {
         switch (type) {
             case GIT:
-                URL url;
+                URI baseUri;
                 try {
-                    url = new URL(baseURL);
-                } catch (MalformedURLException e) {
-                    throw new IllegalStateException("Server URL is not a valid URL", e);
+                    baseUri = new URI(baseURL);
+                } catch (URISyntaxException e) {
+                    throw new IllegalStateException("Server URL is not a valid URI", e);
                 }
-                StringBuilder result = new StringBuilder();
+
+                UriTemplate template = UriTemplate.fromTemplate("{scheme}://{+authority}{+path}{/owner,repository}.git");
+                template.set("owner", owner);
+                template.set("repository", repository);
+
                 switch (protocol) {
                     case HTTP:
-                        result.append(url.getProtocol());
-                        result.append("://");
-                        if (protocolPortOverride != null && protocolPortOverride > 0) {
-                            result.append(url.getHost());
-                            result.append(':');
-                            result.append(protocolPortOverride);
-                        } else {
-                            result.append(url.getAuthority());
-                        }
-                        result.append(url.getPath());
-                        result.append("/scm/");
-                        result.append(owner);
-                        result.append('/');
-                        result.append(repository);
-                        result.append(".git");
+                        template.set("scheme", baseUri.getScheme());
+                        template.set("authority", baseUri.getRawAuthority());
+                        template.set("path", Objects.toString(baseUri.getRawPath(), "") + "/scm");
                         break;
                     case SSH:
-                        result.append("ssh://git@");
-                        result.append(url.getHost());
-                        if (protocolPortOverride  != null && protocolPortOverride > 0) {
-                            result.append(':');
-                            result.append(protocolPortOverride);
+                        template.set("scheme", BitbucketRepositoryProtocol.SSH.getType());
+                        template.set("authority", "git@" + baseUri.getHost());
+                        if (cloneLink != null) {
+                            try {
+                                URI cloneLinkUri = new URI(cloneLink);
+                                if (cloneLinkUri.getScheme() != null) {
+                                    template.set("scheme", cloneLinkUri.getScheme());
+                                }
+                                if (cloneLinkUri.getRawAuthority() != null) {
+                                    template.set("authority", cloneLinkUri.getRawAuthority());
+                                }
+                            } catch (@SuppressWarnings("unused") URISyntaxException ignored) {
+                                // fall through
+                            }
                         }
-                        result.append('/');
-                        result.append(owner);
-                        result.append('/');
-                        result.append(repository);
-                        result.append(".git");
                         break;
                     default:
                         throw new IllegalArgumentException("Unsupported repository protocol: " + protocol);
                 }
-                return result.toString();
+                return template.expand();
                 default:
                     throw new IllegalArgumentException("Unsupported repository type: " + type);
         }
