@@ -24,10 +24,9 @@
 package com.cloudbees.jenkins.plugins.bitbucket.server.client.repository;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketHref;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketProject;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryOwner;
-import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketProject;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;

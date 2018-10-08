@@ -1,9 +1,8 @@
 package com.cloudbees.jenkins.plugins.bitbucket.server.events;
 
+import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 import java.util.Collections;
 import java.util.List;
-
-import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
 
 public class NativeServerRefsChangedEvent {
 

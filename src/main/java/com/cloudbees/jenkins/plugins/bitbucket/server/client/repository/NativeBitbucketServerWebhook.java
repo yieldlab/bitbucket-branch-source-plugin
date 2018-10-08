@@ -1,9 +1,8 @@
 package com.cloudbees.jenkins.plugins.bitbucket.server.client.repository;
 
-import java.util.List;
-
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 public class NativeBitbucketServerWebhook implements BitbucketWebHook {
 

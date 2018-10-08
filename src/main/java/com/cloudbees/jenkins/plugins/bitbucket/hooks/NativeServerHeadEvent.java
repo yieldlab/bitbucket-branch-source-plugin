@@ -1,10 +1,5 @@
 package com.cloudbees.jenkins.plugins.bitbucket.hooks;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMNavigator;
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource;
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSourceContext;
@@ -12,9 +7,12 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketCloudEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.repository.BitbucketServerRepository;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.scm.SCM;
+import java.util.Collections;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMHeadObserver;

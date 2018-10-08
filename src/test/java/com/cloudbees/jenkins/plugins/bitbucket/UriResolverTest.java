@@ -23,6 +23,8 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket;
 
+import static org.junit.Assert.assertEquals;
+
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryProtocol;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
@@ -30,7 +32,6 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketCloudApiClient;
 import com.cloudbees.jenkins.plugins.bitbucket.server.BitbucketServerWebhookImplementation;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.BitbucketServerAPIClient;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class UriResolverTest {
 

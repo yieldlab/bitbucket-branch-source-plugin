@@ -2,16 +2,6 @@ package com.cloudbees.jenkins.plugins.bitbucket.hooks;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource;
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSourceContext;
 import com.cloudbees.jenkins.plugins.bitbucket.BranchSCMHead;
@@ -26,9 +16,17 @@ import com.cloudbees.jenkins.plugins.bitbucket.server.events.NativeServerRefsCha
 import com.google.common.base.Ascii;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMHead;

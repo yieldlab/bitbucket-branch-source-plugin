@@ -23,6 +23,8 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
+import static java.util.Objects.requireNonNull;
+
 import com.cloudbees.jenkins.plugins.bitbucket.server.BitbucketServerWebhookImplementation;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.damnhandy.uri.template.UriTemplate;
@@ -31,9 +33,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-
-import static java.util.Objects.requireNonNull;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import javax.annotation.Nonnull;

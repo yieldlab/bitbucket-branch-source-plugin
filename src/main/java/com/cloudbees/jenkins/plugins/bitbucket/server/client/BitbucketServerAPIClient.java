@@ -23,6 +23,8 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.server.client;
 
+import static java.util.Objects.requireNonNull;
+
 import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBuildStatus;
@@ -109,8 +111,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Bitbucket API client.
