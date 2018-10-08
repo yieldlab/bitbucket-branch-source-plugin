@@ -169,6 +169,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private final BitbucketServerWebhookImplementation webhookImplementation;
 
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
+        @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric) {
+        this(baseURL, owner, repositoryName, creds, userCentric, BitbucketServerEndpoint.findWebhookImplementation(baseURL));
+    }
+
+    public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
             @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric,
             @NonNull BitbucketServerWebhookImplementation webhookImplementation) {
         this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(),
