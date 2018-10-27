@@ -188,10 +188,18 @@ public class BitbucketBuildStatusNotifications {
         @Override
         public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener, File changelogFile,
                                SCMRevisionState pollingBaseline) throws Exception {
-            try {
-                sendNotifications(build, listener);
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace(listener.error("Could not send notifications"));
+
+            boolean hasCompletedCheckoutBefore =
+                build.getAction(FirstCheckoutCompletedInvisibleAction.class) != null;
+
+            if (!hasCompletedCheckoutBefore) {
+                build.addAction(new FirstCheckoutCompletedInvisibleAction());
+
+                try {
+                    sendNotifications(build, listener);
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace(listener.error("Could not send notifications"));
+                }
             }
         }
     }
