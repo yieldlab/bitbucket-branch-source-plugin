@@ -479,14 +479,10 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 branches.addAll(page.getValues());
             }
             for (final BitbucketServerBranch branch: branches) {
-                branch.setTimestampClosure(new Callable<Long>() {
+                branch.setCommitClosure(new Callable<BitbucketCommit>() {
                     @Override
-                    public Long call() throws Exception {
-                        BitbucketCommit commit = resolveCommit(branch.getRawNode());
-                        if (commit != null) {
-                            return commit.getDateMillis();
-                        }
-                        return 0L;
+                    public BitbucketCommit call() throws Exception {
+                        return resolveCommit(branch.getRawNode());
                     }
                 });
             }
@@ -518,6 +514,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public String resolveSourceFullHash(@NonNull BitbucketPullRequest pull) {
         return pull.getSource().getCommit().getHash();
+    }
+
+    @Override
+    public BitbucketCommit resolveCommit(BitbucketPullRequest pull) {
+        return pull.getSource().getCommit();
     }
 
     @Override
@@ -644,7 +645,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return getRepository().isPrivate();
     }
 
-    private String getRequest(String path) throws IOException {
+    protected String getRequest(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
         try(CloseableHttpClient client = getHttpClient(httpget);

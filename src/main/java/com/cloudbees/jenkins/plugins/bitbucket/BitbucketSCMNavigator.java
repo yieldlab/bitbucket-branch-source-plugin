@@ -219,7 +219,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
 
     @NonNull
     public List<SCMTrait<?>> getTraits() {
-        return Collections.unmodifiableList(traits);
+        return Collections.<SCMTrait<?>>unmodifiableList(traits);
     }
 
     @DataBoundSetter
@@ -315,7 +315,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
     @RestrictedSince("2.2.0")
     @DataBoundSetter
     public void setCheckoutCredentialsId(String checkoutCredentialsId) {
-        for (Iterator<SCMTrait<?>> iterator = traits.iterator(); iterator.hasNext(); ) {
+        for (Iterator<SCMTrait<? extends SCMTrait<?>>> iterator = traits.iterator(); iterator.hasNext(); ) {
             if (iterator.next() instanceof SSHCheckoutTrait) {
                 iterator.remove();
             }

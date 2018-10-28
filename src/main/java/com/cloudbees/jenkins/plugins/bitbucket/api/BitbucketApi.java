@@ -169,6 +169,18 @@ public interface BitbucketApi {
     BitbucketCommit resolveCommit(@NonNull String hash) throws IOException, InterruptedException;
 
     /**
+     * Resolve the head commit object of the pull request source repository branch.
+     *
+     * @param pull the pull request to resolve the source hash from
+     * @return the source head commit object
+     * @throws IOException if there was a network communications error.
+     * @throws InterruptedException if interrupted while waiting on remote communications.
+     * @since 2.2.14
+     */
+    @NonNull
+    BitbucketCommit resolveCommit(@NonNull BitbucketPullRequest pull) throws IOException, InterruptedException;
+
+    /**
      * Resolve the head commit hash of the pull request source repository branch.
      *
      * @param pull the pull request to resolve the source hash from

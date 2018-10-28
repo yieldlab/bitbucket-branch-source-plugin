@@ -185,6 +185,7 @@ public class PullRequestHookProcessor extends HookProcessor {
                             if (strategies.size() > 1) {
                                 branchName = branchName + "-" + strategy.name().toLowerCase(Locale.ENGLISH);
                             }
+                            String originalBranchName = pull.getSource().getBranch().getName();
                             PullRequestSCMHead head;
                             if (instanceType == BitbucketType.CLOUD) {
                                 head = new PullRequestSCMHead(
@@ -192,7 +193,7 @@ public class PullRequestHookProcessor extends HookProcessor {
                                         pullRepoOwner,
                                         pullRepository,
                                         type,
-                                        pull.getSource().getBranch().getName(),
+                                        originalBranchName,
                                         pull,
                                         headOrigin,
                                         strategy
@@ -203,7 +204,7 @@ public class PullRequestHookProcessor extends HookProcessor {
                                         src.getRepoOwner(),
                                         src.getRepository(),
                                         type,
-                                        pull.getSource().getBranch().getName(),
+                                        originalBranchName,
                                         pull,
                                         headOrigin,
                                         strategy

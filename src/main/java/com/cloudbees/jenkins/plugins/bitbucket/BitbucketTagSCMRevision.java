@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2018, Nikolas Falco
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,46 +21,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.cloudbees.jenkins.plugins.bitbucket.api;
+package com.cloudbees.jenkins.plugins.bitbucket;
+
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import jenkins.scm.api.SCMHead;
 
 /**
- * Bitbucket Branch.
+ * Represents a specific revision of a bitbucket {@link BitbucketTagSCMRevision}.
  *
- * It's used to represent branches to be built and source branches for pull requests.
+ * @author Nikolas Falco
+ * @since 2.2.14
  */
-public interface BitbucketBranch {
+public class BitbucketTagSCMRevision extends BitbucketGitSCMRevision {
+    private static final long serialVersionUID = 1L;
 
     /**
-     * @return the head commit node of this branch
-     */
-    String getRawNode();
-
-    /**
-     * @return the branch name
-     */
-    String getName();
-
-    /**
-     * @return the commit milliseconds from epoch
-     */
-    long getDateMillis();
-
-    /**
-     * Returns the head commit message for this branch.
+     * Construct a Bitbucket tag revision.
      *
-     * @return the head commit message of this branch
-     * @author Nikolas Falco
-     * @since 2.2.14
+     * @param head the {@link SCMHead} that represent this tag
+     * @param commit head
      */
-    String getMessage();
-
-    /**
-     * Returns the head commit author for this branch.
-     *
-     * @return the head commit author of this branch
-     * @author Nikolas Falco
-     * @since 2.2.14
-     */
-    String getAuthor();
+    public BitbucketTagSCMRevision(@NonNull BitbucketTagSCMHead head, @NonNull BitbucketCommit commit) {
+        super(head, commit);
+    }
 
 }

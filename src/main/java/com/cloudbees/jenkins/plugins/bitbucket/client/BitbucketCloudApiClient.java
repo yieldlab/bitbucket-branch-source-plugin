@@ -459,18 +459,27 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @NonNull
     @Override
     public String resolveSourceFullHash(@NonNull BitbucketPullRequest pull) throws IOException, InterruptedException {
+        return resolveCommit(pull).getHash();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public BitbucketCommit resolveCommit(@NonNull BitbucketPullRequest pull) throws IOException, InterruptedException {
         String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/pullrequests/{pullId}/commits{?fields,pagelen}")
                 .set("owner", owner)
                 .set("repo", repositoryName)
                 .set("pullId", pull.getId())
-                .set("fields", "values.hash")
+                .set("fields", "values.hash,values.author.raw,values.date,values.message")
                 .set("pagelen", 1)
                 .expand();
         String response = getRequest(url);
         try {
             BitbucketPullRequestCommits commits = JsonParser.toJava(response, BitbucketPullRequestCommits.class);
             for (BitbucketPullRequestCommit commit : Util.fixNull(commits.getValues())) {
-                return commit.getHash();
+                return commit;
             }
             throw new BitbucketException("Could not determine commit for pull request " + pull.getId());
         } catch (IOException e) {
@@ -761,7 +770,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
     }
 
-    private String getRequest(String path) throws IOException, InterruptedException {
+    protected String getRequest(String path) throws IOException, InterruptedException {
         try (InputStream inputStream = getRequestAsInputStream(path)){
             return IOUtils.toString(inputStream, "UTF-8");
         }
@@ -890,6 +899,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return activeBranches;
     }
 
+    @Override
     public Iterable<SCMFile> getDirectoryContent(final BitbucketSCMFile parent) throws IOException, InterruptedException {
         String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash,path}")
                 .set("owner", owner)
@@ -917,6 +927,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         return result;
     }
 
+    @Override
     public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException {
         String url = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/src{/branchOrHash,path}")
                 .set("owner", owner)
