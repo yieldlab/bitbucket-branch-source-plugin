@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2018, Nikolas Falco
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,46 +21,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.cloudbees.jenkins.plugins.bitbucket.api;
+package com.cloudbees.jenkins.plugins.bitbucket.server.client.branch;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Bitbucket Branch.
- *
- * It's used to represent branches to be built and source branches for pull requests.
+ * Represents the author information given by Bitbucket Server.
+ * 
+ * @author Nikolas Falco
+ * @since 2.2.14
  */
-public interface BitbucketBranch {
+public class BitbucketServerAuthor {
+    private String name;
+    @JsonProperty("emailAddress")
+    private String email;
 
     /**
-     * @return the head commit node of this branch
+     * Returns the author name provided by the commit.
+     * 
+     * @return the commit author name
      */
-    String getRawNode();
+    public String getName() {
+        return name;
+    }
 
     /**
-     * @return the branch name
+     * Sets the author name provided by the commit.
+     * 
+     * @param name the commit author name
      */
-    String getName();
+    public void setName(String name) {
+        this.name = name;
+    }
 
     /**
-     * @return the commit milliseconds from epoch
+     * Returns the author email provided by the commit.
+     * 
+     * @return the commit author email
      */
-    long getDateMillis();
+    public String getEmail() {
+        return email;
+    }
 
     /**
-     * Returns the head commit message for this branch.
-     *
-     * @return the head commit message of this branch
-     * @author Nikolas Falco
-     * @since 2.2.14
+     * Sets the author email provided by the commit.
+     * 
+     * @param email the commit author email
      */
-    String getMessage();
-
-    /**
-     * Returns the head commit author for this branch.
-     *
-     * @return the head commit author of this branch
-     * @author Nikolas Falco
-     * @since 2.2.14
-     */
-    String getAuthor();
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
 }

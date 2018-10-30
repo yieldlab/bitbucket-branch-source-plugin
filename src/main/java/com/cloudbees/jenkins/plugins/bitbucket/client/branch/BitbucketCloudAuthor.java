@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2018, Nikolas Falco
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,46 +21,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.cloudbees.jenkins.plugins.bitbucket.api;
+package com.cloudbees.jenkins.plugins.bitbucket.client.branch;
 
 /**
- * Bitbucket Branch.
- *
- * It's used to represent branches to be built and source branches for pull requests.
+ * Represents the author information given by Bitbucket Cloud.
+ * 
+ * @author Nikolas Falco
+ * @since 2.2.14
  */
-public interface BitbucketBranch {
+public class BitbucketCloudAuthor {
+    private String raw;
 
     /**
-     * @return the head commit node of this branch
+     * Returns the raw author string provided by the commit.
+     * 
+     * @return the commit author, typically in the form &lt;name&gt; &lt;email&gt;
      */
-    String getRawNode();
+    public String getRaw() {
+        return raw;
+    }
 
     /**
-     * @return the branch name
+     * Sets the raw author string provided by the commit.
+     * 
+     * @param raw the commit author
      */
-    String getName();
-
-    /**
-     * @return the commit milliseconds from epoch
-     */
-    long getDateMillis();
-
-    /**
-     * Returns the head commit message for this branch.
-     *
-     * @return the head commit message of this branch
-     * @author Nikolas Falco
-     * @since 2.2.14
-     */
-    String getMessage();
-
-    /**
-     * Returns the head commit author for this branch.
-     *
-     * @return the head commit author of this branch
-     * @author Nikolas Falco
-     * @since 2.2.14
-     */
-    String getAuthor();
-
+    public void setRaw(String raw) {
+        this.raw = raw;
+    }
 }

@@ -153,7 +153,7 @@ public class BitbucketBuildStatusNotifications {
                 .notificationsDisabled()) {
             return;
         }
-        SCMRevision r = SCMRevisionAction.getRevision(build);  // TODO JENKINS-44648 getRevision(s, build)
+        SCMRevision r = SCMRevisionAction.getRevision(s, build);
         String hash = getHash(r);
         if (hash == null) {
             return;

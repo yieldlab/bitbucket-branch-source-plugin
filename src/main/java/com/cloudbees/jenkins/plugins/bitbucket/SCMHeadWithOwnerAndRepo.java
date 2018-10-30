@@ -165,7 +165,7 @@ public class SCMHeadWithOwnerAndRepo extends SCMHead {
                     head,
                     // ChangeRequestCheckoutStrategy.HEAD means we ignore the target revision
                     // so we can leave it null as a placeholder
-                    new BitbucketSCMSource.MercurialRevision(head.getTarget(), null),
+                    new BitbucketSCMSource.MercurialRevision(head.getTarget(), (String) null),
                     new BitbucketSCMSource.MercurialRevision(head, revision.getHash())
             ) : null;
         }

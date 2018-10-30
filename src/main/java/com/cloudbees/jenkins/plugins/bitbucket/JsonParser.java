@@ -56,10 +56,14 @@ public final class JsonParser {
      * The StdDateFormat parser before 2.9.2 returns null when the timezone is expressed in
      * the extended form [+-]hh:mm. and there are more than 3 milliseconds.
      * 
+     * @deprecated Replace with {@link StdDateFormat} when update jackson2 (api
+     *             plugin) to version greater than 2.9.2
      * @author nikolasfalco
      */
     // TODO remove this class when update jackson2 (api plugin) to version greater than 2.9.2
-    /*package*/ static class BitbucketDateFormat extends ISO8601DateFormat {
+    @Deprecated
+    @Restricted(NoExternalUse.class)
+    public static class BitbucketDateFormat extends ISO8601DateFormat {
         private static final long serialVersionUID = 1L;
 
         /*
