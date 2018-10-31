@@ -67,7 +67,7 @@ public class UriResolverTest {
                 "user2",
                 "repo2"
         ));
-        api = new BitbucketServerAPIClient("http://devtools.test:1234/git/web/", "test", null, null, false);
+        api = new BitbucketServerAPIClient("http://devtools.test:1234/git/web/", "test", null, (BitbucketAuthenticator) null, false);
         assertEquals("http://devtools.test:1234/git/web/scm/user2/repo2.git", api.getRepositoryUri(
                 BitbucketRepositoryType.GIT,
                 BitbucketRepositoryProtocol.HTTP,
