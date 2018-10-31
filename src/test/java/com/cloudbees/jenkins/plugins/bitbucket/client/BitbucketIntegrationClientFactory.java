@@ -24,6 +24,7 @@
 package com.cloudbees.jenkins.plugins.bitbucket.client;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketCloudEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.server.client.BitbucketServerAPIClient;
 import java.io.IOException;
@@ -51,7 +52,7 @@ public class BitbucketIntegrationClientFactory {
         private final String payloadRootPath;
 
         public BitbucketServerIntegrationClient(String payloadRootPath, String baseURL, String owner, String repositoryName) {
-            super(baseURL, owner, repositoryName, null, false);
+            super(baseURL, owner, repositoryName, (BitbucketAuthenticator) null, false);
 
             if (payloadRootPath == null) {
                 this.payloadRootPath = PAYLOAD_RESOURCE_ROOTPATH;
@@ -83,7 +84,7 @@ public class BitbucketIntegrationClientFactory {
         private final String payloadRootPath;
 
         public BitbucketCouldIntegrationClient(String payloadRootPath, String owner, String repositoryName) {
-            super(false, 0, 0, owner, repositoryName, null);
+            super(false, 0, 0, owner, repositoryName, (BitbucketAuthenticator) null);
 
             if (payloadRootPath == null) {
                 this.payloadRootPath = PAYLOAD_RESOURCE_ROOTPATH;

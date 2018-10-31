@@ -25,6 +25,7 @@ package com.cloudbees.jenkins.plugins.bitbucket.server.client;
 
 import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBuildStatus;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequest;
@@ -34,6 +35,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
+import com.cloudbees.jenkins.plugins.bitbucket.api.credentials.BitbucketUsernamePasswordAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.AbstractBitbucketEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfiguration;
@@ -57,7 +59,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
 import hudson.Util;
-import hudson.util.Secret;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -155,16 +156,21 @@ public class BitbucketServerAPIClient implements BitbucketApi {
      * Credentials to access API services.
      * Almost @NonNull (but null is accepted for anonymous access).
      */
-    private final UsernamePasswordCredentials credentials;
+    private final BitbucketAuthenticator authenticator;
 
     private HttpClientContext context;
 
     private final String baseURL;
 
+    @Deprecated
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
-                                    @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric) {
-        this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(),
-                Secret.toString(creds.getPassword())) : null;
+                                    @CheckForNull StandardUsernamePasswordCredentials credentials, boolean userCentric) {
+        this(baseURL, owner, repositoryName, credentials != null ? new BitbucketUsernamePasswordAuthenticator(credentials) : null, userCentric);
+    }
+
+    public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
+                                    @CheckForNull BitbucketAuthenticator authenticator, boolean userCentric) {
+        this.authenticator = authenticator;
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
@@ -648,6 +654,10 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     protected String getRequest(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
 
+        if (authenticator != null) {
+            authenticator.configureRequest(httpget);
+        }
+
         try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
             String content;
@@ -701,14 +711,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
         final String host = getMethodHost(request);
 
-        if (credentials != null) {
-            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY, credentials);
-            AuthCache authCache = new BasicAuthCache();
-            authCache.put(HttpHost.create(host), new BasicScheme());
+        if (authenticator != null) {
+            authenticator.configureBuilder(httpClientBuilder);
+
             context = HttpClientContext.create();
-            context.setCredentialsProvider(credentialsProvider);
-            context.setAuthCache(authCache);
+            authenticator.configureContext(context, HttpHost.create(host));
         }
 
         setClientProxyParams(host, httpClientBuilder);
@@ -753,6 +760,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private int getRequestStatus(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
+        if (authenticator != null) {
+            authenticator.configureRequest(httpget);
+        }
 
         try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
@@ -794,6 +804,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     private String doRequest(HttpRequestBase request) throws IOException {
+        if (authenticator != null) {
+            authenticator.configureRequest(request);
+        }
 
         try(CloseableHttpClient client = getHttpClient(request);
                 CloseableHttpResponse response = client.execute(request, context)) {

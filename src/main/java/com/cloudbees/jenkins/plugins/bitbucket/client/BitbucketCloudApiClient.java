@@ -26,6 +26,7 @@ package com.cloudbees.jenkins.plugins.bitbucket.client;
 
 import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBuildStatus;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketException;
@@ -36,6 +37,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
+import com.cloudbees.jenkins.plugins.bitbucket.api.credentials.BitbucketUsernamePasswordAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.client.branch.BitbucketCloudBranch;
 import com.cloudbees.jenkins.plugins.bitbucket.client.branch.BitbucketCloudCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.client.pullrequest.BitbucketPullRequestCommit;
@@ -57,7 +59,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
 import hudson.Util;
-import hudson.util.Secret;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -123,9 +124,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     private HttpClientContext context;
     private final String owner;
     private final String repositoryName;
-    @CheckForNull
-    private final UsernamePasswordCredentials credentials;
     private final boolean enableCache;
+    private final BitbucketAuthenticator authenticator;
     static {
         connectionManager.setDefaultMaxPerRoute(20);
         connectionManager.setMaxTotal(22);
@@ -148,13 +148,16 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         cachedRepositories.evictAll();
     }
 
+    @Deprecated
     public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuraction,
-            String owner, String repositoryName, StandardUsernamePasswordCredentials creds) {
-        if (creds != null) {
-            this.credentials = new UsernamePasswordCredentials(creds.getUsername(), Secret.toString(creds.getPassword()));
-        } else {
-            this.credentials = null;
-        }
+                                   String owner, String repositoryName, StandardUsernamePasswordCredentials credentials) {
+        this(enableCache, teamCacheDuration, repositoriesCacheDuraction, owner, repositoryName,
+                new BitbucketUsernamePasswordAuthenticator(credentials));
+    }
+
+    public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuraction,
+            String owner, String repositoryName, BitbucketAuthenticator authenticator) {
+        this.authenticator = authenticator;
         this.owner = owner;
         this.repositoryName = repositoryName;
         this.enableCache = enableCache;
@@ -168,14 +171,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         httpClientBuilder.setConnectionManager(connectionManager);
         httpClientBuilder.setConnectionManagerShared(true);
 
-        if (credentials != null) {
-            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY, credentials);
-            AuthCache authCache = new BasicAuthCache();
-            authCache.put(API_HOST, new BasicScheme());
+        if (authenticator != null) {
+            authenticator.configureBuilder(httpClientBuilder);
+
             context = HttpClientContext.create();
-            context.setCredentialsProvider(credentialsProvider);
-            context.setAuthCache(authCache);
+            authenticator.configureContext(context, API_HOST);
         }
 
         setClientProxyParams("bitbucket.org", httpClientBuilder);
@@ -245,13 +245,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
     }
 
-    @CheckForNull
-    public String getLogin() {
-        if (credentials != null) {
-            return credentials.getUserName();
-        }
-        return null;
-    }
 
     /**
      * {@inheritDoc}
@@ -290,6 +283,15 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             pullRequests.addAll(page.getValues());
         }
         return pullRequests;
+    }
+
+    @Deprecated
+    @CheckForNull
+    public String getLogin() {
+        if (authenticator != null) {
+            return authenticator.getId();
+        }
+        return null;
     }
 
     /**
@@ -624,7 +626,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
 
     /**
      * The role parameter only makes sense when the request is authenticated, so
-     * if there is no auth information ({@link #credentials}) the role will be omitted.
+     * if there is no auth information ({@link #authenticator}) the role will be omitted.
      */
     @NonNull
     @Override
@@ -632,13 +634,17 @@ public class BitbucketCloudApiClient implements BitbucketApi {
             throws InterruptedException, IOException {
         StringBuilder cacheKey = new StringBuilder();
         cacheKey.append(owner);
-        if (credentials != null) {
-            cacheKey.append("::").append(credentials.getUserName());
+
+        if (authenticator != null) {
+            cacheKey.append("::").append(authenticator.getId());
+        } else {
+            cacheKey.append("::<anonymous>");
         }
+
         final UriTemplate template = UriTemplate.fromTemplate(V2_API_BASE_URL + "{/owner}{?role,page,pagelen}")
                 .set("owner", owner)
                 .set("pagelen", 50);
-        if (role != null && getLogin() != null) {
+        if (role != null &&  authenticator != null) {
             template.set("role", role.getId());
             cacheKey.append("::").append(role.getId());
         }
@@ -718,6 +724,11 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     private CloseableHttpResponse executeMethod(HttpRequestBase httpMethod) throws InterruptedException, IOException {
+
+        if (authenticator != null) {
+            authenticator.configureRequest(httpMethod);
+        }
+
         RequestConfig.Builder requestConfig = RequestConfig.custom();
         requestConfig.setConnectTimeout(10 * 1000);
         requestConfig.setConnectionRequestTimeout(60 * 1000);
