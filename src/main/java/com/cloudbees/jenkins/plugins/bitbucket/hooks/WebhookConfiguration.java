@@ -62,7 +62,7 @@ public class WebhookConfiguration {
     /**
      * The comma separated list of committers to ignore
      */
-    private String committersToIgnore;
+    private final String committersToIgnore;
     
     public WebhookConfiguration() {
         this.committersToIgnore = null;

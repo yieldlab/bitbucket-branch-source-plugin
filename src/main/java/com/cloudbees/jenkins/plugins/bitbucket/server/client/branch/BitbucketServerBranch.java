@@ -32,7 +32,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 public class BitbucketServerBranch implements BitbucketBranch {
-    private static Logger LOGGER = Logger.getLogger(BitbucketServerBranch.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(BitbucketServerBranch.class.getName());
 
     private String displayId;
 

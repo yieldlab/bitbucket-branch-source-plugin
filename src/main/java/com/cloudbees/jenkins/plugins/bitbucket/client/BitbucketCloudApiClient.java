@@ -149,8 +149,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         connectionManager.setMaxTotal(22);
         connectionManager.setSocketConfig(API_HOST, SocketConfig.custom().setSoTimeout(60 * 1000).build());
     }
-    private static Cache<String, BitbucketTeam> cachedTeam = new Cache<>(6, HOURS);
-    private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache<>(3, HOURS);
+    private static final Cache<String, BitbucketTeam> cachedTeam = new Cache<>(6, HOURS);
+    private static final Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache<>(3, HOURS);
     private transient BitbucketRepository cachedRepository;
     private transient String cachedDefaultBranch;
 

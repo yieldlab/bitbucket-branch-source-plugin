@@ -43,7 +43,7 @@ public class BitbucketSCMNavigatorRequest extends SCMNavigatorRequest {
     /**
      * Map of all repositories found by this request
      */
-    private Map<String, BitbucketRepository> repositoryMap = new TreeMap<>();
+    private final Map<String, BitbucketRepository> repositoryMap = new TreeMap<>();
 
     /**
      * Constructor.

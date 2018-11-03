@@ -44,8 +44,8 @@ import org.apache.http.ssl.SSLContexts;
  */
 public class BitbucketClientCertificateAuthenticator extends BitbucketAuthenticator {
 
-    private KeyStore keyStore;
-    private Secret password;
+    private final KeyStore keyStore;
+    private final Secret password;
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketClientCertificateAuthenticator.class.getName());
 

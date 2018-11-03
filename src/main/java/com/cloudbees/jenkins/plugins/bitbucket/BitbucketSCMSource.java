@@ -1569,7 +1569,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     private class BitbucketRevisionFactory<I> implements SCMSourceRequest.LazyRevisionLambda<SCMHead, SCMRevision, I> {
-        private BitbucketApi client;
+        private final BitbucketApi client;
 
         public BitbucketRevisionFactory(BitbucketApi client) {
             this.client = client;
@@ -1626,7 +1626,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     private static class BranchHeadCommit implements BitbucketCommit {
 
-        private BitbucketBranch branch;
+        private final BitbucketBranch branch;
 
         public BranchHeadCommit(@NonNull final BitbucketBranch branch) {
             this.branch = branch;

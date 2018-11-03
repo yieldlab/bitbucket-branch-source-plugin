@@ -865,7 +865,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
     private static class WitnessImpl implements SCMNavigatorRequest.Witness {
         private int count;
 
-        private BitbucketSCMNavigatorRequest request;
+        private final BitbucketSCMNavigatorRequest request;
         private final TaskListener listener;
 
         public WitnessImpl(BitbucketSCMNavigatorRequest request, TaskListener listener) {

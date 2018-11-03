@@ -56,8 +56,8 @@ public enum HookEventType {
      */
     PULL_REQUEST_DECLINED("pullrequest:rejected", PullRequestHookProcessor.class);
 
-    private String key;
-    private Class<?> clazz;
+    private final String key;
+    private final Class<?> clazz;
 
     <P extends HookProcessor> HookEventType(@NonNull String key, Class<P> clazz) {
         this.key = key;
