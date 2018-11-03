@@ -97,7 +97,7 @@ public class WebhookConfiguration {
             Set<String> events = new TreeSet<>(hook.getEvents());
             events.addAll(CLOUD_EVENTS);
             BitbucketRepositoryHook repoHook = (BitbucketRepositoryHook) hook;
-            repoHook.setEvents(new ArrayList<String>(events));
+            repoHook.setEvents(new ArrayList<>(events));
         } else if(hook instanceof BitbucketServerWebhook) {
             BitbucketServerWebhook serverHook = (BitbucketServerWebhook) hook;
             serverHook.setCommittersToIgnore(committersToIgnore);

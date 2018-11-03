@@ -57,7 +57,7 @@ public class BitbucketClientMockUtils {
         BitbucketCloudApiClient bitbucket = mock(BitbucketCloudApiClient.class);
         when(bitbucket.getRepositoryUri(any(BitbucketRepositoryType.class), any(BitbucketRepositoryProtocol.class), anyString(), anyString(), anyString())).thenCallRealMethod();
         // mock branch list
-        List<BitbucketCloudBranch> branches = new ArrayList<BitbucketCloudBranch>();
+        List<BitbucketCloudBranch> branches = new ArrayList<>();
         branches.add(getBranch("branch1", "52fc8e220d77ec400f7fc96a91d2fd0bb1bc553a"));
         branches.add(getBranch("branch2", "707c59ce8292c927dddb6807fcf9c3c5e7c9b00f"));
         // add branches

@@ -80,8 +80,8 @@ public class SCMNavigatorTest {
 
     private class SCMSourceObserverImpl extends SCMSourceObserver {
 
-        List<String> observed = new ArrayList<String>();
-        List<ProjectObserver> projectObservers = new ArrayList<SCMSourceObserver.ProjectObserver>();
+        List<String> observed = new ArrayList<>();
+        List<ProjectObserver> projectObservers = new ArrayList<>();
         TaskListener listener;
         SCMSourceOwner owner;
 
@@ -125,7 +125,7 @@ public class SCMNavigatorTest {
 
         public class ProjectObserverImpl extends ProjectObserver {
 
-            private List<SCMSource> sources = new ArrayList<SCMSource>();
+            private List<SCMSource> sources = new ArrayList<>();
 
             @Override
             public void addSource(@NonNull SCMSource source) {

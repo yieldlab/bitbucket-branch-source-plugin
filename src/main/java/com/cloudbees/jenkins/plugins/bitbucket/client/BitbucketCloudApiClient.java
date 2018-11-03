@@ -270,7 +270,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @NonNull
     @Override
     public List<BitbucketPullRequestValue> getPullRequests() throws InterruptedException, IOException {
-        List<BitbucketPullRequestValue> pullRequests = new ArrayList<BitbucketPullRequestValue>();
+        List<BitbucketPullRequestValue> pullRequests = new ArrayList<>();
 
         UriTemplate template = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/pullrequests{?page,pagelen}")
                 .set("owner", owner)
@@ -561,7 +561,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @NonNull
     @Override
     public List<BitbucketRepositoryHook> getWebHooks() throws IOException, InterruptedException {
-        List<BitbucketRepositoryHook> repositoryHooks = new ArrayList<BitbucketRepositoryHook>();
+        List<BitbucketRepositoryHook> repositoryHooks = new ArrayList<>();
         int pageNumber = 1;
         UriTemplate template = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/hooks{?page,pagelen}")
                 .set("owner", owner)
@@ -677,7 +677,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         Callable<List<BitbucketCloudRepository>> request = new Callable<List<BitbucketCloudRepository>>() {
             @Override
             public List<BitbucketCloudRepository> call() throws Exception {
-                List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
+                List<BitbucketCloudRepository> repositories = new ArrayList<>();
                 Integer pageNumber = 1;
                 String url, response;
                 PaginatedBitbucketRepository page;
@@ -914,7 +914,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     private List<BitbucketCloudBranch> getAllBranches(String response) throws IOException, InterruptedException {
-        List<BitbucketCloudBranch> branches = new ArrayList<BitbucketCloudBranch>();
+        List<BitbucketCloudBranch> branches = new ArrayList<>();
         BitbucketCloudPage<BitbucketCloudBranch> page = JsonParser.mapper.readValue(response,
                 new TypeReference<BitbucketCloudPage<BitbucketCloudBranch>>(){});
         branches.addAll(page.getValues());

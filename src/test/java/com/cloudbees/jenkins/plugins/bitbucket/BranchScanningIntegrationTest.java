@@ -182,7 +182,7 @@ public class BranchScanningIntegrationTest {
                 // test code is generating a NullPointer when calling it from an ItemListener on the SCMSourceOwner
                 // It seems that the object is not fully initialized when the ItemListener uses it.
                 // Perhaps it needs to be reproduced and investigated in a branch-api test.
-                return new ArrayList<SCMSource>();
+                return new ArrayList<>();
             }
             return super.getSCMSources();
         }
