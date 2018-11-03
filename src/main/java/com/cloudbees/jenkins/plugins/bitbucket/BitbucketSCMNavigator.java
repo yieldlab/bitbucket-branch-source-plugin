@@ -857,7 +857,7 @@ public class BitbucketSCMNavigator extends SCMNavigator {
                             Icon.ICON_LARGE_STYLE));
             IconSet.icons.addIcon(
                     new Icon("icon-bitbucket-branch icon-xlg",
-                            "plugin/cloudbees-bitbucket-branch-sourcee/images/48x48/bitbucket-branch.png",
+                            "plugin/cloudbees-bitbucket-branch-source/images/48x48/bitbucket-branch.png",
                             Icon.ICON_XLARGE_STYLE));
         }
     }

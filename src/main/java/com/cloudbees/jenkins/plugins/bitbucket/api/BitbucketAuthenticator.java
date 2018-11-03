@@ -40,7 +40,7 @@ public abstract class BitbucketAuthenticator {
     private String id;
 
     /**
-     * The key for bitbucket URL as rerported in an {@link AuthenticationTokenContext}
+     * The key for bitbucket URL as reported in an {@link AuthenticationTokenContext}
      */
     public static final String SERVER_URL = "bitbucket.server.uri";
 
