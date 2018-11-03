@@ -29,9 +29,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.DateUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.TimeZone;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;

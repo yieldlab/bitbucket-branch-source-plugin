@@ -6,5 +6,6 @@
         <module name="ImportOrder">
             <property name="option" value="bottom" />
         </module>
+        <module name="UnusedImports" />
     </module>
 </module>
