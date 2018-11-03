@@ -39,9 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -73,7 +71,6 @@ public class BitbucketCloudPushEventTest {
         assertThat(event.getRepository().getLinks().get("self"), notNullValue());
         assertThat(event.getRepository().getLinks().get("self").get(0).getHref(),
                 is("https://api.bitbucket.org/2.0/repositories/cloudbeers/temp"));
-        assertThat(event.getChanges(), not(containsInAnyOrder()));
         assertThat(event.getChanges().size(), is(1));
         BitbucketPushEvent.Change change = event.getChanges().get(0);
         assertThat(change.getOld(), nullValue());
@@ -100,7 +97,7 @@ public class BitbucketCloudPushEventTest {
         assertThat(event.getRepository().getLinks().get("self"), notNullValue());
         assertThat(event.getRepository().getLinks().get("self").get(0).getHref(),
                 is("https://api.bitbucket.org/2.0/repositories/cloudbeers/temp"));
-        assertThat(event.getChanges(), not(containsInAnyOrder()));
+        assertThat(event.getChanges().size(), is(1));
     }
 
     @Test
@@ -117,7 +114,7 @@ public class BitbucketCloudPushEventTest {
         assertThat(event.getRepository().getLinks().get("self"), notNullValue());
         assertThat(event.getRepository().getLinks().get("self").get(0).getHref(),
                 is("https://api.bitbucket.org/2.0/repositories/cloudbeers/temp"));
-        assertThat(event.getChanges(), containsInAnyOrder());
+        assertThat(event.getChanges().size(), is(0));
     }
 
     @Test
@@ -155,7 +152,6 @@ public class BitbucketCloudPushEventTest {
         assertThat(event.getRepository().getLinks().get("self"), notNullValue());
         assertThat(event.getRepository().getLinks().get("self").get(0).getHref(),
                 is("https://api.bitbucket.org/2.0/repositories/cloudbeers/temp"));
-        assertThat(event.getChanges(), not(containsInAnyOrder()));
         assertThat(event.getChanges().size(), is(3));
         BitbucketPushEvent.Change change = event.getChanges().get(0);
         assertThat(change.getOld(), notNullValue());
