@@ -23,8 +23,8 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
-import com.damnhandy.uri.template.UriTemplate;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;

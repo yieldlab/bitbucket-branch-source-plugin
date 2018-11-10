@@ -214,6 +214,23 @@
   <build>
     <plugins>
       <plugin>
+         <artifactId>maven-checkstyle-plugin</artifactId>
+         <version>3.0.0</version>
+         <configuration>
+           <configLocation>${basedir}/checkstyle.xml</configLocation>
+           <includeResources>false</includeResources>
+           <excludes>**/FormTagLib.java</excludes>
+           <includeTestSourceDirectory>true</includeTestSourceDirectory>
+         </configuration>
+         <executions>
+           <execution>
+             <goals>
+               <goal>check</goal>
+             </goals>
+           </execution>
+         </executions>
+      </plugin>
+      <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <executions>

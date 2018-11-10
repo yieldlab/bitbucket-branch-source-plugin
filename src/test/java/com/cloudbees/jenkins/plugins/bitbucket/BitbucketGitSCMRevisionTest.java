@@ -28,14 +28,12 @@ import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketIntegrationClient
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketCloudEndpoint;
 import hudson.Util;
 import hudson.model.TaskListener;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.trait.SCMHeadAuthority;
-import jenkins.scm.api.trait.SCMSourceTrait;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
-
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.trait.SCMHeadAuthority;
+import jenkins.scm.api.trait.SCMSourceTrait;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -46,8 +44,8 @@ import org.junit.runners.Parameterized.Parameters;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mockito;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 @RunWith(Parameterized.class)
 public class BitbucketGitSCMRevisionTest {

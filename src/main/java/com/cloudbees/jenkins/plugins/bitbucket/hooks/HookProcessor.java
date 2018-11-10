@@ -25,13 +25,12 @@ package com.cloudbees.jenkins.plugins.bitbucket.hooks;
 
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource;
 import hudson.security.ACL;
-import jenkins.scm.api.SCMSource;
-import jenkins.scm.api.SCMSourceOwner;
-import jenkins.scm.api.SCMSourceOwners;
-
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.SCMSourceOwners;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
