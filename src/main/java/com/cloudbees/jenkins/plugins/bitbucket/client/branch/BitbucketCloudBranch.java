@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2016, CloudBees, Inc., Nikolas Falco
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,20 +24,30 @@
 package com.cloudbees.jenkins.plugins.bitbucket.client.branch;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBranch;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 public class BitbucketCloudBranch implements BitbucketBranch {
+    private static Logger LOGGER = Logger.getLogger(BitbucketCloudBranch.class.getName());
+
     private final String name;
     private final boolean isActive;
     private long dateInMillis;
     private String hash;
     private String author;
     private String message;
+    private Callable<BitbucketCommit> commitClosure;
+    private boolean callableInitialised;
 
     @JsonCreator
     public BitbucketCloudBranch(@NonNull @JsonProperty("name") String name,
@@ -72,6 +82,9 @@ public class BitbucketCloudBranch implements BitbucketBranch {
     }
 
     public void setDateMillis(long dateInMillis) {
+        if (dateInMillis == 0) {
+            initHeadCommitInfo();
+        }
         this.dateInMillis = dateInMillis;
     }
 
@@ -95,6 +108,9 @@ public class BitbucketCloudBranch implements BitbucketBranch {
 
     @Override
     public String getMessage() {
+        if (message == null) {
+            initHeadCommitInfo();
+        }
         return message;
     }
 
@@ -104,11 +120,38 @@ public class BitbucketCloudBranch implements BitbucketBranch {
 
     @Override
     public String getAuthor() {
+        if (author == null) {
+            initHeadCommitInfo();
+        }
         return author;
     }
 
     public void setAuthor(String authorName) {
         this.author = authorName;
+    }
+
+    @Restricted(NoExternalUse.class)
+    public void setCommitClosure(Callable<BitbucketCommit> commitClosure) {
+        this.commitClosure = commitClosure;
+    }
+
+    private void initHeadCommitInfo() {
+        if (callableInitialised || commitClosure == null) {
+            return;
+        }
+
+        callableInitialised = true;
+        try {
+            BitbucketCommit commit = commitClosure.call();
+
+            this.dateInMillis = commit.getDateMillis();
+            this.message = commit.getMessage();
+            this.author = commit.getAuthor();
+        } catch (Exception e) {
+            LOGGER.log(Level.FINER, "Could not determine head commit details", e);
+            // fallback on default values
+            this.dateInMillis = 0L;
+        }
     }
 
     public static class Target {
@@ -137,4 +180,5 @@ public class BitbucketCloudBranch implements BitbucketBranch {
             this.hash = hash;
         }
     }
+
 }

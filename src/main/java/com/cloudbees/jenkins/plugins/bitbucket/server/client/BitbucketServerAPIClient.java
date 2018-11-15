@@ -36,6 +36,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
 import com.cloudbees.jenkins.plugins.bitbucket.api.credentials.BitbucketUsernamePasswordAuthenticator;
+import com.cloudbees.jenkins.plugins.bitbucket.client.pullrequest.BitbucketPullRequests;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.AbstractBitbucketEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfiguration;
@@ -115,6 +116,24 @@ import org.apache.http.util.EntityUtils;
  */
 public class BitbucketServerAPIClient implements BitbucketApi {
 
+    /**
+     * Make available commit informations in a lazy way.
+     *
+     * @author Nikolas Falco
+     */
+    private class CommitClosure implements Callable<BitbucketCommit> {
+        private final String hash;
+
+        public CommitClosure(@NonNull String hash) {
+            this.hash = hash;
+        }
+
+        @Override
+        public BitbucketCommit call() throws Exception {
+            return resolveCommit(hash);
+        }
+    }
+
     private static final Logger LOGGER = Logger.getLogger(BitbucketServerAPIClient.class.getName());
     private static final String API_BASE_PATH = "/rest/api/1.0";
     private static final String API_REPOSITORIES_PATH = API_BASE_PATH + "/projects/{owner}/repos{?start}";
@@ -136,6 +155,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private static final String API_COMMIT_STATUS_PATH = "/rest/build-status/1.0/commits{/hash}";
     private static final Integer DEFAULT_PAGE_LIMIT = 200;
+
 
     /**
      * Repository owner.
@@ -270,46 +290,59 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @NonNull
     @Override
     public List<BitbucketServerPullRequest> getPullRequests() throws IOException, InterruptedException {
+        List<BitbucketServerPullRequest> pullRequests = new ArrayList<>();
+
         UriTemplate template = UriTemplate
                 .fromTemplate(API_PULL_REQUESTS_PATH)
                 .set("owner", getUserCentricOwner())
-                .set("repo", repositoryName)
-                .set("start", 0)
-                .set("limit", DEFAULT_PAGE_LIMIT);
-        String url = template.expand();
+                .set("repo", repositoryName);
 
-        try {
-            List<BitbucketServerPullRequest> pullRequests = new ArrayList<>();
+        BitbucketServerPullRequests page;
+        Integer pageNumber = 0;
+        Integer limit = DEFAULT_PAGE_LIMIT;
+        do {
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
+            }
+            String url = template //
+                    .set("start", pageNumber) //
+                    .set("limit", limit) //
+                    .expand();
             String response = getRequest(url);
-            BitbucketServerPullRequests page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
-            pullRequests.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                Integer limit = page.getLimit();
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
-                        .expand();
-                response = getRequest(url);
+            try {
                 page = JsonParser.toJava(response, BitbucketServerPullRequests.class);
-                pullRequests.addAll(page.getValues());
+            } catch (IOException e) {
+                throw new IOException("I/O error when parsing response from URL: " + url, e);
             }
+            pullRequests.addAll(page.getValues());
 
-            AbstractBitbucketEndpoint endpointConfig = BitbucketEndpointConfiguration.get().findEndpoint(baseURL);
-            if (endpointConfig instanceof BitbucketServerEndpoint && ((BitbucketServerEndpoint)endpointConfig).isCallCanMerge()) {
-                // This is required for Bitbucket Server to update the refs/pull-requests/* references
-                // See https://community.atlassian.com/t5/Bitbucket-questions/Change-pull-request-refs-after-Commit-instead-of-after-Approval/qaq-p/194702#M6829
-                for (BitbucketServerPullRequest pullRequest : pullRequests) {
-                    pullRequest.setCanMerge(getPullRequestCanMergeById(Integer.parseInt(pullRequest.getId())));
-                }
-            }
-            
-            return pullRequests;
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
+            limit = page.getLimit();
+            pageNumber = page.getNextPageStart();
+        } while (!page.isLastPage());
+
+        // set commit closure to make commit informations available when need, in a similar way to when request branches 
+        for (BitbucketServerPullRequest pr : page.getValues()) {
+            setupClosureForPRBranch(pr);
         }
+
+        AbstractBitbucketEndpoint endpointConfig = BitbucketEndpointConfiguration.get().findEndpoint(baseURL);
+        if (endpointConfig instanceof BitbucketServerEndpoint && ((BitbucketServerEndpoint) endpointConfig).isCallCanMerge()) {
+            // This is required for Bitbucket Server to update the refs/pull-requests/* references
+            // See https://community.atlassian.com/t5/Bitbucket-questions/Change-pull-request-refs-after-Commit-instead-of-after-Approval/qaq-p/194702#M6829
+            for (BitbucketServerPullRequest pullRequest : pullRequests) {
+                pullRequest.setCanMerge(getPullRequestCanMergeById(Integer.parseInt(pullRequest.getId())));
+            }
+        }
+        
+        return pullRequests;
+    }
+
+    private void setupClosureForPRBranch(BitbucketServerPullRequest pr) {
+        BitbucketServerBranch branch = (BitbucketServerBranch) pr.getSource().getBranch();
+        branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
+
+        branch = (BitbucketServerBranch) pr.getDestination().getBranch();
+        branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
     }
 
     private boolean getPullRequestCanMergeById(@NonNull Integer id) throws IOException {
@@ -341,7 +374,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .expand();
         String response = getRequest(url);
         try {
-            return JsonParser.toJava(response, BitbucketServerPullRequest.class);
+            BitbucketServerPullRequest pr = JsonParser.toJava(response, BitbucketServerPullRequest.class);
+
+            setupClosureForPRBranch(pr);
+
+            return pr;
         } catch (IOException e) {
             throw new IOException("I/O error when accessing URL: " + url, e);
         }
@@ -484,14 +521,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 page = JsonParser.toJava(response, BitbucketServerBranches.class);
                 branches.addAll(page.getValues());
             }
+
             for (final BitbucketServerBranch branch: branches) {
-                branch.setCommitClosure(new Callable<BitbucketCommit>() {
-                    @Override
-                    public BitbucketCommit call() throws Exception {
-                        return resolveCommit(branch.getRawNode());
-                    }
-                });
+                branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
             }
+
             return branches;
         } catch (IOException e) {
             throw new IOException("I/O error when accessing URL: " + url, e);
@@ -499,6 +533,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     /** {@inheritDoc} */
+    @NonNull
     @Override
     public BitbucketCommit resolveCommit(@NonNull String hash) throws IOException {
         String url = UriTemplate
@@ -522,9 +557,10 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return pull.getSource().getCommit().getHash();
     }
 
+    @NonNull
     @Override
-    public BitbucketCommit resolveCommit(BitbucketPullRequest pull) {
-        return pull.getSource().getCommit();
+    public BitbucketCommit resolveCommit(@NonNull BitbucketPullRequest pull) throws IOException, InterruptedException {
+        return resolveCommit(resolveSourceFullHash(pull));
     }
 
     @Override

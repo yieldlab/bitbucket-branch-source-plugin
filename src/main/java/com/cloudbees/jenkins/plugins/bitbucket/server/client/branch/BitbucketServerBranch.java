@@ -110,7 +110,7 @@ public class BitbucketServerBranch implements BitbucketBranch {
 
     @Override
     public String getMessage() {
-        if (message == null && commitClosure != null) {
+        if (message == null) {
             initHeadCommitInfo();
         }
         return message;
@@ -122,7 +122,7 @@ public class BitbucketServerBranch implements BitbucketBranch {
 
     @Override
     public String getAuthor() {
-        if (author == null && commitClosure != null) {
+        if (author == null) {
             initHeadCommitInfo();
         }
         return author;
@@ -133,7 +133,7 @@ public class BitbucketServerBranch implements BitbucketBranch {
     }
 
     private void initHeadCommitInfo() {
-        if (callableInitialised) {
+        if (callableInitialised || commitClosure == null) {
             return;
         }
 
@@ -147,7 +147,7 @@ public class BitbucketServerBranch implements BitbucketBranch {
         } catch (Exception e) {
             LOGGER.log(Level.FINER, "Could not determine head commit details", e);
             // fallback on default values
-            timestamp = 0L;
+            this.timestamp = 0L;
         }
     }
 }

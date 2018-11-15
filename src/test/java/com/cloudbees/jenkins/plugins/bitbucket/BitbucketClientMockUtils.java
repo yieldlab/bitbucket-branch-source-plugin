@@ -181,31 +181,21 @@ public class BitbucketClientMockUtils {
 
     private static BitbucketPullRequestValue getPullRequest() {
         BitbucketPullRequestValue pr = new BitbucketPullRequestValue();
-        BitbucketPullRequestValueRepository source = new BitbucketPullRequestValueRepository();
 
         BitbucketCloudBranch branch = new BitbucketCloudBranch("my-feature-branch", null, 0);
-        source.setBranch(branch);
-
         BitbucketCloudAuthor author = new BitbucketCloudAuthor();
         author.setRaw("amuniz <amuniz@mail.com>");
-
         BitbucketCloudCommit commit = new BitbucketCloudCommit("no message", "2018-09-13T15:29:23+00:00", "e851558f77c098d21af6bb8cc54a423f7cf12147", author);
-        source.setCommit(commit);
-
         BitbucketCloudRepository repository = new BitbucketCloudRepository();
         repository.setFullName("otheruser/test-repos");
-        source.setRepository(repository);
 
-        pr.setSource(source);
+        pr.setSource(new BitbucketPullRequestValueRepository(repository, branch, commit));
 
-        BitbucketPullRequestValueDestination destination = new BitbucketPullRequestValueDestination();
-        destination.setCommit(new BitbucketCloudCommit("initial commit", "2018-09-10T15:29:23+00:00", "52fc8e220d77ec400f7fc96a91d2fd0bb1bc553a", author));
+        commit = new BitbucketCloudCommit("initial commit", "2018-09-10T15:29:23+00:00", "52fc8e220d77ec400f7fc96a91d2fd0bb1bc553a", author);
         branch = new BitbucketCloudBranch("branch1", null, 0);
-        destination.setBranch(branch);
         repository = new BitbucketCloudRepository();
         repository.setFullName("amuniz/test-repos");
-        destination.setRepository(repository);
-        pr.setDestination(destination);
+        pr.setDestination(new BitbucketPullRequestValueDestination(repository, branch, commit));
 
         pr.setId("23");
         pr.setAuthor(new BitbucketPullRequestValue.Author("amuniz"));

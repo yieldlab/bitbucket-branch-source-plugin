@@ -674,21 +674,24 @@ public class BitbucketSCMSource extends SCMSource {
                                 strategy);
                     }
                     if (request.process(head, //
-                            new SCMSourceRequest.IntermediateLambda<String>() {
+                            new SCMSourceRequest.IntermediateLambda<BitbucketCommit>() {
                                 @Nullable
                                 @Override
-                                public String create() throws IOException, InterruptedException {
-                                    return pull.getSource().getCommit().getHash();
+                                public BitbucketCommit create() throws IOException, InterruptedException {
+                                    // use branch instead of commit to postpone closure initialisation
+                                    return new BranchHeadCommit(pull.getSource().getBranch());
                                 }
                             },  //
-                            new BitbucketProbeFactory<String>(pullBitbucket, request), //
-                            new BitbucketRevisionFactory<String>(pullBitbucket) {
+                            new BitbucketProbeFactory<BitbucketCommit>(pullBitbucket, request), //
+                            new BitbucketRevisionFactory<BitbucketCommit>(pullBitbucket) {
                                 @NonNull
                                 @Override
-                                public SCMRevision create(@NonNull SCMHead head, @Nullable String hash)
+                                public SCMRevision create(@NonNull SCMHead head, @Nullable BitbucketCommit sourceCommit)
                                         throws IOException, InterruptedException {
                                     try {
-                                        return super.create(head, hash, pull.getDestination().getCommit().getHash());
+                                        // use branch instead of commit to postpone closure initialisation
+                                        BranchHeadCommit targetCommit = new BranchHeadCommit(pull.getDestination().getBranch());
+                                        return super.create(head, sourceCommit, targetCommit);
                                     } catch (BitbucketRequestException e) {
                                         if (originBitbucket instanceof BitbucketCloudApiClient) {
                                             if (e.getHttpCode() == 403) {
@@ -897,9 +900,10 @@ public class BitbucketSCMSource extends SCMSource {
     private BitbucketCommit findPRCommit(String prId, List<? extends BitbucketPullRequest> pullRequests, TaskListener listener) {
         for (BitbucketPullRequest pr : pullRequests) {
             if (prId.equals(pr.getId())) {
-                BitbucketCommit commit = pr.getSource().getCommit();
-                String revision = commit.getHash();
-                if (revision == null) {
+                // if I use getCommit() the branch closure is trigger immediately
+                BitbucketBranch branch = pr.getSource().getBranch();
+                String hash = branch.getRawNode();
+                if (hash == null) {
                     if (BitbucketCloudEndpoint.SERVER_URL.equals(getServerUrl())) {
                         listener.getLogger().format("Cannot resolve the hash of the revision in PR-%s%n",
                                 prId);
@@ -910,7 +914,7 @@ public class BitbucketSCMSource extends SCMSource {
                     }
                     return null;
                 }
-                return commit;
+                return new BranchHeadCommit(branch);
             }
         }
         listener.getLogger().format("Cannot find the PR-%s%n", prId);

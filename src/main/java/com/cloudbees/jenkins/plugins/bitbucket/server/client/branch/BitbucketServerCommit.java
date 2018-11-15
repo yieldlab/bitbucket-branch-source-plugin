@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2016, CloudBees, Inc., Nikolas Falco
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,19 +50,16 @@ public class BitbucketServerCommit implements BitbucketCommit {
                                  @NonNull @JsonProperty("id") String hash, //
                                  @NonNull @JsonProperty("authorTimestamp") long dateMillis, //
                                  @Nullable @JsonProperty("author") BitbucketServerAuthor author) {
-        this(message, null, hash, dateMillis);
         // date it is not in the payload
-        this.date = new StdDateFormat().format(new Date(dateMillis));
-        if (author != null) {
-            this.author = MessageFormat.format(GIT_COMMIT_AUTHOR, author.getName(), author.getEmail());
-        }
+        this(message, hash, dateMillis, author != null ? MessageFormat.format(GIT_COMMIT_AUTHOR, author.getName(), author.getEmail()) : null);
     }
 
-    public BitbucketServerCommit(String message, String date, String hash, long dateMillis) {
+    public BitbucketServerCommit(String message, String hash, long dateMillis, String author) {
         this.message = message;
-        this.date = date;
         this.hash = hash;
         this.dateMillis = dateMillis;
+        this.date = new StdDateFormat().format(new Date(dateMillis));
+        this.author = author;
     }
 
     public BitbucketServerCommit(String hash) {
