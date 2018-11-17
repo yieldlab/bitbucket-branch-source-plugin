@@ -26,67 +26,50 @@ package com.cloudbees.jenkins.plugins.bitbucket;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
 import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketIntegrationClientFactory;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketCloudEndpoint;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.Extension;
-import java.io.IOException;
-import java.util.ArrayList;
+import hudson.Util;
+import hudson.model.TaskListener;
 import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.Collection;
+import java.util.Set;
 import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import jenkins.scm.api.trait.SCMHeadFilter;
-import jenkins.scm.api.trait.SCMSourceContext;
-import jenkins.scm.api.trait.SCMSourceRequest;
+import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.mockito.Mockito;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
+@RunWith(Parameterized.class)
 public class BitbucketGitSCMRevisionTest {
 
-    private final class SCMHeadObserverImpl extends SCMHeadObserver {
-
-        public List<SCMRevision> revisions = new ArrayList<>();
-
-        @Override
-        public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) {
-            revisions.add(revision);
-        }
-
-        public List<SCMRevision> getRevisions() {
-            return revisions;
-        }
+    @SuppressWarnings("unchecked")
+    @Parameters(name = "verify revision informations from {0}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] { //
+            { "branch on cloud", new BranchDiscoveryTrait(true, true), BitbucketCloudEndpoint.SERVER_URL }, //
+            { "branch on server", new BranchDiscoveryTrait(true, true), "localhost" }, //
+            { "PR on cloud", new OriginPullRequestDiscoveryTrait(2), BitbucketCloudEndpoint.SERVER_URL }, //
+            { "PR on server", new OriginPullRequestDiscoveryTrait(2), "localhost" }, //
+            { "forked on cloud", new ForkPullRequestDiscoveryTrait(2, Mockito.mock(SCMHeadAuthority.class)), BitbucketCloudEndpoint.SERVER_URL }, //
+            { "forked on server", new ForkPullRequestDiscoveryTrait(2, Mockito.mock(SCMHeadAuthority.class)), "localhost" } //
+        });
     }
 
-    private static class SCMHeadFilterTrait extends SCMSourceTrait {
-        private String branchName;
+    private final SCMSourceTrait trait;
+    private final String serverURL;
 
-        public SCMHeadFilterTrait(String branchName) {
-            this.branchName = branchName;
-        }
-
-        @Override
-        protected void decorateContext(SCMSourceContext<?, ?> context) {
-            context.withFilter(new SCMHeadFilter() {
-                
-                @Override
-                public boolean isExcluded(SCMSourceRequest request, SCMHead head) throws IOException, InterruptedException {
-                    return !(branchName.equals(head.getName()));
-                }
-            });
-        }
-
-        @Extension
-        public static class DescriptorImpl extends SCMSourceTraitDescriptor {
-        }
+    public BitbucketGitSCMRevisionTest(String testName, SCMSourceTrait trait, String serverURL) {
+        this.trait = trait;
+        this.serverURL = serverURL;
+        
     }
 
     @ClassRule
@@ -98,62 +81,34 @@ public class BitbucketGitSCMRevisionTest {
     }
 
     @Test
-    public void verify_that_revision_is_valued_for_PRs_on_cloud() throws Exception {
-        BitbucketMockApiFactory.add(BitbucketCloudEndpoint.SERVER_URL, getApiMockClient(BitbucketCloudEndpoint.SERVER_URL));
+    public void verify_revision_informations_are_valued() throws Exception {
+        BitbucketMockApiFactory.add(serverURL, getApiMockClient(serverURL));
         BitbucketSCMSource source = new BitbucketSCMSource("amuniz", "test-repos");
+        source.setServerUrl(serverURL);
+        source.setTraits(Arrays.<SCMSourceTrait> asList(trait));
 
-        source.setTraits(Arrays.<SCMSourceTrait> asList( //
-                new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD)), //
-                new SCMHeadFilterTrait("PR-1")));
-        SCMHeadObserverImpl observer = new SCMHeadObserverImpl();
-        source.fetch(observer, BitbucketClientMockUtils.getTaskListenerMock());
+        TaskListener listener = BitbucketClientMockUtils.getTaskListenerMock();
+        Set<SCMHead> heads = source.fetch(listener);
 
-        // the PR observed should be only branches that matches PR-1
-        assertThat(observer.getRevisions().size(), equalTo(1));
+        assertThat(heads.size(), Matchers.greaterThan(0));
 
-        PullRequestSCMRevision<?> pullRev = (PullRequestSCMRevision<?>) observer.getRevisions().get(0);
-
-        // check that PR has correct revision with full info
-        BitbucketGitSCMRevision sourceRevision = (BitbucketGitSCMRevision) pullRev.getPull();
-        assertThat(sourceRevision.getHash(), equalTo("bf0e8b7962c024026ad01ae09d3a11732e26c0d4"));
-        assertThat(sourceRevision.getMessage(), equalTo("[CI] Release version 1.0.0"));
-        assertThat(sourceRevision.getAuthor(), equalTo("Builder <no-reply@acme.com>"));
-
-        BitbucketGitSCMRevision targetRevision = (BitbucketGitSCMRevision) pullRev.getTarget();
-        assertThat(targetRevision.getHash(), equalTo("bf4f4ce8a3a8d5c7dbfe7d609973a81a6c6664cf"));
-        assertThat(targetRevision.getMessage(), equalTo("Add sample script hello world"));
-        assertThat(targetRevision.getAuthor(), equalTo("Antonio Muniz <amuniz@example.com>"));
+        for (SCMHead head : heads) {
+            if (head instanceof BranchSCMHead) {
+                BitbucketGitSCMRevision revision = (BitbucketGitSCMRevision) source.retrieve(head, listener);
+                assertRevision(revision);
+            } else if (head instanceof PullRequestSCMHead) {
+                @SuppressWarnings("unchecked")
+                PullRequestSCMRevision<BitbucketGitSCMRevision> revision = (PullRequestSCMRevision<BitbucketGitSCMRevision>) source.retrieve(head, listener);
+                assertRevision(revision.getPull());
+                assertRevision((BitbucketGitSCMRevision) revision.getTarget());
+            }
+        }
     }
 
-    @Test
-    public void verify_that_revision_is_valued_for_PRs_on_server() throws Exception {
-        String serverUrl = "localhost";
-        BitbucketMockApiFactory.add(serverUrl, getApiMockClient(serverUrl));
-
-        BitbucketSCMSource source = new BitbucketSCMSource("amuniz", "test-repos");
-        source.setServerUrl(serverUrl);
-
-        source.setTraits(Arrays.<SCMSourceTrait> asList( //
-                new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD)), //
-                new SCMHeadFilterTrait("PR-1")));
-        SCMHeadObserverImpl observer = new SCMHeadObserverImpl();
-        source.fetch(observer, BitbucketClientMockUtils.getTaskListenerMock());
-
-        // the PR observed should be only branches that matches PR-1
-        assertThat(observer.getRevisions().size(), equalTo(1));
-
-        PullRequestSCMRevision<?> pullRev = (PullRequestSCMRevision<?>) observer.getRevisions().get(0);
-
-        // check that PR has correct revision with full info
-        BitbucketGitSCMRevision sourceRevision = (BitbucketGitSCMRevision) pullRev.getPull();
-        assertThat(sourceRevision.getHash(), equalTo("bf0e8b7962c024026ad01ae09d3a11732e26c0d4"));
-        assertThat(sourceRevision.getMessage(), equalTo("[CI] Release version 1.0.0"));
-        assertThat(sourceRevision.getAuthor(), equalTo("Builder <no-reply@acme.com>"));
-
-        BitbucketGitSCMRevision targetRevision = (BitbucketGitSCMRevision) pullRev.getTarget();
-        assertThat(targetRevision.getHash(), equalTo("bf4f4ce8a3a8d5c7dbfe7d609973a81a6c6664cf"));
-        assertThat(targetRevision.getMessage(), equalTo("Add sample script hello world"));
-        assertThat(targetRevision.getAuthor(), equalTo("Antonio Muniz <amuniz@example.com>"));
+    private void assertRevision(BitbucketGitSCMRevision revision) {
+        assertThat("commit message is not valued for revision " + revision.getHash(), Util.fixEmptyAndTrim(revision.getMessage()), notNullValue());
+        assertThat("commit author is not valued for revision " + revision.getHash(), Util.fixEmptyAndTrim(revision.getAuthor()), notNullValue());
+        assertThat("commit date is not valued for revision " + revision.getHash(), revision.getDate(), notNullValue());
     }
 
     private BitbucketApi getApiMockClient(String serverURL) {

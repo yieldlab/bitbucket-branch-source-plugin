@@ -23,18 +23,17 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.client;
 
-import static org.junit.Assert.*;
-
+import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
+import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
-
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
-import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
-import com.cloudbees.jenkins.plugins.bitbucket.client.repository.BitbucketCloudRepository;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 public class BitbucketCloudApiClientTest {
 

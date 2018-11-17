@@ -23,6 +23,11 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
+import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,15 +35,8 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.text.ParsePosition;
 import java.util.Date;
-
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
-import com.fasterxml.jackson.databind.util.StdDateFormat;
-import com.google.common.base.Charsets;
 
 /**
  * Jackson based JSON parser

@@ -23,31 +23,23 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket;
 
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.junit.ClassRule;
-import org.junit.Test;
-
-import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketCloudApiClient;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-
-import hudson.model.TaskListener;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceObserver;
-import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceObserver.ProjectObserver;
+import jenkins.scm.api.SCMSourceOwner;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mockito;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class SCMNavigatorTest {
 

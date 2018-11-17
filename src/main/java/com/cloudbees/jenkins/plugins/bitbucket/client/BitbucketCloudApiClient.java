@@ -77,10 +77,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFile;
-
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
@@ -112,7 +108,29 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 public class BitbucketCloudApiClient implements BitbucketApi {
+
+    /**
+     * Make available commit informations in a lazy way.
+     *
+     * @author Nikolas Falco
+     */
+    private class CommitClosure implements Callable<BitbucketCommit> {
+        private final String hash;
+
+        public CommitClosure(@NonNull String hash) {
+            this.hash = hash;
+        }
+
+        @Override
+        public BitbucketCommit call() throws Exception {
+            return resolveCommit(hash);
+        }
+    }
+
     private static final Logger LOGGER = Logger.getLogger(BitbucketCloudApiClient.class.getName());
     private static final HttpHost API_HOST = HttpHost.create("https://api.bitbucket.org");
     private static final String V2_API_BASE_URL = "https://api.bitbucket.org/2.0/repositories";
@@ -253,36 +271,42 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @Override
     public List<BitbucketPullRequestValue> getPullRequests() throws InterruptedException, IOException {
         List<BitbucketPullRequestValue> pullRequests = new ArrayList<BitbucketPullRequestValue>();
-        int pageNumber = 1;
+
         UriTemplate template = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/pullrequests{?page,pagelen}")
                 .set("owner", owner)
                 .set("repo", repositoryName)
-                .set("page", pageNumber)
                 .set("pagelen", 50);
-        String url = template.expand();
 
-        String response = getRequest(url);
         BitbucketPullRequests page;
-        try {
-            page = JsonParser.toJava(response, BitbucketPullRequests.class);
-        } catch (IOException e) {
-            throw new IOException("I/O error when parsing response from URL: " + url, e);
-        }
-        pullRequests.addAll(page.getValues());
-        while (page.getNext() != null) {
+        int pageNumber = 1;
+        do {
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }
-            pageNumber++;
-            response = getRequest(url = template.set("page", pageNumber).expand());
+            String url = template //
+                    .set("page", pageNumber++) //
+                    .expand();
+            String response = getRequest(url);
             try {
                 page = JsonParser.toJava(response, BitbucketPullRequests.class);
             } catch (IOException e) {
                 throw new IOException("I/O error when parsing response from URL: " + url, e);
             }
             pullRequests.addAll(page.getValues());
+        } while (page.getNext() != null);
+
+        for (BitbucketPullRequestValue pullRequest : pullRequests) {
+            setupClosureForPRBranch(pullRequest);
         }
+
         return pullRequests;
+    }
+
+    private void setupClosureForPRBranch(BitbucketPullRequestValue pullRequest) {
+        BitbucketCloudBranch branch = pullRequest.getSource().getBranch();
+        branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
+        branch = pullRequest.getDestination().getBranch();
+        branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
     }
 
     @Deprecated
@@ -307,7 +331,9 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 .expand();
         String response = getRequest(url);
         try {
-            return JsonParser.toJava(response, BitbucketPullRequestValue.class);
+            BitbucketPullRequestValue pr = JsonParser.toJava(response, BitbucketPullRequestValue.class);
+            setupClosureForPRBranch(pr);
+            return pr;
         } catch (IOException e) {
             throw new IOException("I/O error when parsing response from URL: " + url, e);
         }

@@ -35,6 +35,7 @@ public class BitbucketCloudCommit implements BitbucketCommit {
 
     private String message;
     private String date;
+    private transient long dateInMillis;
     private String hash;
     private String author;
 
@@ -72,6 +73,8 @@ public class BitbucketCloudCommit implements BitbucketCommit {
 
     public void setDate(String date) {
         this.date = date;
+        // calculated on demand
+        this.dateInMillis = 0;
     }
 
     public void setHash(String hash) {
@@ -81,10 +84,13 @@ public class BitbucketCloudCommit implements BitbucketCommit {
     @Override
     public long getDateMillis() {
         try {
-            return new BitbucketDateFormat().parse(date).getTime();
+            if (dateInMillis == 0 && date != null) {
+                dateInMillis = new BitbucketDateFormat().parse(date).getTime();
+            }
         } catch (ParseException e) {
-            return 0;
+            dateInMillis = 0;
         }
+        return dateInMillis;
     }
 
     @Override
