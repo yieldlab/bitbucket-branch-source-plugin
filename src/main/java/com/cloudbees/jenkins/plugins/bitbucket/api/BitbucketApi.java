@@ -288,9 +288,9 @@ public interface BitbucketApi {
      * @throws IOException if there was a network communications error.
      * @throws InterruptedException if interrupted while waiting on remote communications.
      */
-	@Restricted(NoExternalUse.class)
-	public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException;
-	
+    @Restricted(NoExternalUse.class)
+    public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException;
+    
     /**
      * Return an input stream for the given file.
      * 
@@ -300,5 +300,5 @@ public interface BitbucketApi {
      * @throws InterruptedException if interrupted while waiting on remote communications.
      */
     @Restricted(NoExternalUse.class)
-	public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException;
+    public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException;
 }
