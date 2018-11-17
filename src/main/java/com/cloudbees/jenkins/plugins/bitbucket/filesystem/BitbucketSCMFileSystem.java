@@ -100,7 +100,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         public SCMFileSystem build(@NonNull Item owner, @NonNull SCM scm, @CheckForNull SCMRevision rev) {
             return null;
         }
-        
+
         private static StandardCredentials lookupScanCredentials(@CheckForNull Item context,
                 @CheckForNull String scanCredentialsId, String serverUrl) {
             if (Util.fixEmpty(scanCredentialsId) == null) {
@@ -126,7 +126,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
         public SCMFileSystem build(@NonNull SCMSource source, @NonNull SCMHead head, @CheckForNull SCMRevision rev)
                 throws IOException, InterruptedException {
             BitbucketSCMSource src = (BitbucketSCMSource) source;
-            
+
             String credentialsId = src.getCredentialsId();
             String owner = src.getRepoOwner();
             String repository = src.getRepository();
@@ -135,7 +135,7 @@ public class BitbucketSCMFileSystem extends SCMFileSystem {
             credentials = lookupScanCredentials(src.getOwner(), credentialsId, serverUrl);
 
             BitbucketAuthenticator authenticator = AuthenticationTokens.convert(BitbucketAuthenticator.authenticationContext(serverUrl), credentials);
-            
+
             BitbucketApi apiClient = BitbucketApiFactory.newInstance(serverUrl, authenticator, owner, repository);
             String ref;
             if (head instanceof BranchSCMHead) {

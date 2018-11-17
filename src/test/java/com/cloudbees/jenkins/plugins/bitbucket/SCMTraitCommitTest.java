@@ -86,7 +86,7 @@ public class SCMTraitCommitTest {
         @Override
         protected void decorateContext(SCMSourceContext<?, ?> context) {
             context.withFilter(new SCMHeadFilter() {
-                
+
                 @Override
                 public boolean isExcluded(SCMSourceRequest request, SCMHead head) throws IOException, InterruptedException {
                     BitbucketSCMSourceRequest bbRequest = (BitbucketSCMSourceRequest) request;

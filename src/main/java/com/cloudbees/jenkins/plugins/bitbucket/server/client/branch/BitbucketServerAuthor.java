@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Represents the author information given by Bitbucket Server.
- * 
+ *
  * @author Nikolas Falco
  * @since 2.2.14
  */
@@ -38,7 +38,7 @@ public class BitbucketServerAuthor {
 
     /**
      * Returns the author name provided by the commit.
-     * 
+     *
      * @return the commit author name
      */
     public String getName() {
@@ -47,7 +47,7 @@ public class BitbucketServerAuthor {
 
     /**
      * Sets the author name provided by the commit.
-     * 
+     *
      * @param name the commit author name
      */
     public void setName(String name) {
@@ -56,7 +56,7 @@ public class BitbucketServerAuthor {
 
     /**
      * Returns the author email provided by the commit.
-     * 
+     *
      * @return the commit author email
      */
     public String getEmail() {
@@ -65,7 +65,7 @@ public class BitbucketServerAuthor {
 
     /**
      * Sets the author email provided by the commit.
-     * 
+     *
      * @param email the commit author email
      */
     public void setEmail(String email) {

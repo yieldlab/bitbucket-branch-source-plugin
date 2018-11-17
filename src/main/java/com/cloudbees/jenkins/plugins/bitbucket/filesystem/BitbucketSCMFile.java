@@ -35,7 +35,7 @@ public class BitbucketSCMFile  extends SCMFile {
     private final BitbucketApi api;
     private  String ref;
     private final String hash;
-    
+
     public String getRef() {
         return ref;
     }

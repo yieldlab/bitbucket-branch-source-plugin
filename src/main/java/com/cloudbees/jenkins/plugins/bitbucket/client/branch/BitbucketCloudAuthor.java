@@ -25,7 +25,7 @@ package com.cloudbees.jenkins.plugins.bitbucket.client.branch;
 
 /**
  * Represents the author information given by Bitbucket Cloud.
- * 
+ *
  * @author Nikolas Falco
  * @since 2.2.14
  */
@@ -34,7 +34,7 @@ public class BitbucketCloudAuthor {
 
     /**
      * Returns the raw author string provided by the commit.
-     * 
+     *
      * @return the commit author, typically in the form &lt;name&gt; &lt;email&gt;
      */
     public String getRaw() {
@@ -43,7 +43,7 @@ public class BitbucketCloudAuthor {
 
     /**
      * Sets the raw author string provided by the commit.
-     * 
+     *
      * @param raw the commit author
      */
     public void setRaw(String raw) {

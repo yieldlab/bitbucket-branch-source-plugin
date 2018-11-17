@@ -171,11 +171,11 @@ public class BranchScanningIntegrationTest {
             return new BranchProjectFactoryImpl();
         }
 
-        @Override 
+        @Override
         public SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
             return CRITERIA;
         }
-        
+
         @Override
         public List<SCMSource> getSCMSources() {
             if (getSourcesList() == null) {
@@ -225,12 +225,12 @@ public class BranchScanningIntegrationTest {
         @Extension
         public static class DescriptorImpl extends MultiBranchProjectDescriptor {
 
-            @Override 
+            @Override
             public String getDisplayName() {
                 return "Test Multibranch";
             }
 
-            @Override 
+            @Override
             public TopLevelItem newInstance(ItemGroup parent, String name) {
                 return new MultiBranchProjectImpl(parent, name);
             }

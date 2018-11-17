@@ -48,12 +48,12 @@ public final class JsonParser {
      * Date formatter is because {@link StdDateFormat} and the
      * ISO8601DateFormat fails to parse some data format returned by the
      * Bitbucket REST APIs.
-     * 
+     *
      * <p>
      * The ISO8601DateFormat parser fail if there are more than 3 milliseconds.
      * The StdDateFormat parser before 2.9.2 returns null when the timezone is expressed in
      * the extended form [+-]hh:mm. and there are more than 3 milliseconds.
-     * 
+     *
      * @deprecated Replace with {@link StdDateFormat} when update jackson2 (api
      *             plugin) to version greater than 2.9.2
      * @author nikolasfalco

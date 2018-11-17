@@ -53,12 +53,12 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
      * {@code true} if caching should be used to reduce requests to Bitbucket.
      */
     private final boolean enableCache;
-    
+
     /**
      * How long, in minutes, to cache the team response.
      */
     private final int teamCacheDuration;
-    
+
     /**
      * How long, in minutes, to cache the repositories response.
      */
@@ -93,11 +93,11 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
     public int getTeamCacheDuration() {
         return teamCacheDuration;
     }
-    
+
     public int getRepositoriesCacheDuration() {
         return repositoriesCacheDuration;
     }
-    
+
     /**
      * {@inheritDoc}
      */

@@ -263,7 +263,6 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
     }
 
-
     /**
      * {@inheritDoc}
      */
@@ -638,7 +637,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 }
             }
         };
-        
+
         try {
             if (enableCache) {
                 return cachedTeam.get(owner, request);
