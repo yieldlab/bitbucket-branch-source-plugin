@@ -73,7 +73,7 @@ public class BitbucketServerPullRequestEventTest {
         assertThat(event.getPullRequest().getAuthorLogin(), is("User"));
         assertThat(event.getPullRequest().getLink(),
                 is("http://local.example.com:7990/bitbucket/projects/PROJECT_1/repos/rep_1/pull-requests/1"));
-        
+
         assertThat(event.getPullRequest().getDestination(), notNullValue());
         assertThat(event.getPullRequest().getDestination().getRepository(), notNullValue());
         assertThat(event.getPullRequest().getDestination().getRepository().getScm(), is("git"));

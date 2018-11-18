@@ -69,7 +69,7 @@ public class BitbucketGitSCMRevisionTest {
     public BitbucketGitSCMRevisionTest(String testName, SCMSourceTrait trait, String serverURL) {
         this.trait = trait;
         this.serverURL = serverURL;
-        
+
     }
 
     @ClassRule

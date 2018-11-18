@@ -121,7 +121,7 @@ public class SCMHeadWithOwnerAndRepo extends SCMHead {
             LOGGER.log(Level.FINE, "Cannot resolve pull request targets", e);
         }
         synchronized (cache) {
-            cache.put(source, new SoftReference<Map<String, String>>(targets));
+            cache.put(source, new SoftReference<>(targets));
         }
         return targets;
     }

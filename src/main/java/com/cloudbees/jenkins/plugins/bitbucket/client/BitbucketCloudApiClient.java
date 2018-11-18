@@ -149,8 +149,8 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         connectionManager.setMaxTotal(22);
         connectionManager.setSocketConfig(API_HOST, SocketConfig.custom().setSoTimeout(60 * 1000).build());
     }
-    private static Cache<String, BitbucketTeam> cachedTeam = new Cache(6, HOURS);
-    private static Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache(3, HOURS);
+    private static final Cache<String, BitbucketTeam> cachedTeam = new Cache<>(6, HOURS);
+    private static final Cache<String, List<BitbucketCloudRepository>> cachedRepositories = new Cache<>(3, HOURS);
     private transient BitbucketRepository cachedRepository;
     private transient String cachedDefaultBranch;
 
@@ -167,13 +167,13 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     @Deprecated
-    public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuraction,
+    public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuration,
                                    String owner, String repositoryName, StandardUsernamePasswordCredentials credentials) {
-        this(enableCache, teamCacheDuration, repositoriesCacheDuraction, owner, repositoryName,
+        this(enableCache, teamCacheDuration, repositoriesCacheDuration, owner, repositoryName,
                 new BitbucketUsernamePasswordAuthenticator(credentials));
     }
 
-    public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuraction,
+    public BitbucketCloudApiClient(boolean enableCache, int teamCacheDuration, int repositoriesCacheDuration,
             String owner, String repositoryName, BitbucketAuthenticator authenticator) {
         this.authenticator = authenticator;
         this.owner = owner;
@@ -181,7 +181,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         this.enableCache = enableCache;
         if (enableCache) {
             cachedTeam.setExpireDuration(teamCacheDuration, MINUTES);
-            cachedRepositories.setExpireDuration(repositoriesCacheDuraction, MINUTES);
+            cachedRepositories.setExpireDuration(repositoriesCacheDuration, MINUTES);
         }
 
         // Create Http client
@@ -263,14 +263,13 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         }
     }
 
-
     /**
      * {@inheritDoc}
      */
     @NonNull
     @Override
     public List<BitbucketPullRequestValue> getPullRequests() throws InterruptedException, IOException {
-        List<BitbucketPullRequestValue> pullRequests = new ArrayList<BitbucketPullRequestValue>();
+        List<BitbucketPullRequestValue> pullRequests = new ArrayList<>();
 
         UriTemplate template = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/pullrequests{?page,pagelen}")
                 .set("owner", owner)
@@ -561,7 +560,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     @NonNull
     @Override
     public List<BitbucketRepositoryHook> getWebHooks() throws IOException, InterruptedException {
-        List<BitbucketRepositoryHook> repositoryHooks = new ArrayList<BitbucketRepositoryHook>();
+        List<BitbucketRepositoryHook> repositoryHooks = new ArrayList<>();
         int pageNumber = 1;
         UriTemplate template = UriTemplate.fromTemplate(REPO_URL_TEMPLATE + "/hooks{?page,pagelen}")
                 .set("owner", owner)
@@ -638,7 +637,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
                 }
             }
         };
-        
+
         try {
             if (enableCache) {
                 return cachedTeam.get(owner, request);
@@ -677,7 +676,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
         Callable<List<BitbucketCloudRepository>> request = new Callable<List<BitbucketCloudRepository>>() {
             @Override
             public List<BitbucketCloudRepository> call() throws Exception {
-                List<BitbucketCloudRepository> repositories = new ArrayList<BitbucketCloudRepository>();
+                List<BitbucketCloudRepository> repositories = new ArrayList<>();
                 Integer pageNumber = 1;
                 String url, response;
                 PaginatedBitbucketRepository page;
@@ -914,7 +913,7 @@ public class BitbucketCloudApiClient implements BitbucketApi {
     }
 
     private List<BitbucketCloudBranch> getAllBranches(String response) throws IOException, InterruptedException {
-        List<BitbucketCloudBranch> branches = new ArrayList<BitbucketCloudBranch>();
+        List<BitbucketCloudBranch> branches = new ArrayList<>();
         BitbucketCloudPage<BitbucketCloudBranch> page = JsonParser.mapper.readValue(response,
                 new TypeReference<BitbucketCloudPage<BitbucketCloudBranch>>(){});
         branches.addAll(page.getValues());

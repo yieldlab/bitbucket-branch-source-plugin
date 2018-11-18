@@ -155,7 +155,6 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     private static final String API_COMMIT_STATUS_PATH = "/rest/build-status/1.0/commits{/hash}";
     private static final Integer DEFAULT_PAGE_LIMIT = 200;
 
-
     /**
      * Repository owner.
      */
@@ -319,7 +318,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             pageNumber = page.getNextPageStart();
         } while (!page.isLastPage());
 
-        // set commit closure to make commit informations available when need, in a similar way to when request branches 
+        // set commit closure to make commit informations available when need, in a similar way to when request branches
         for (BitbucketServerPullRequest pr : page.getValues()) {
             setupClosureForPRBranch(pr);
         }
@@ -332,7 +331,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 pullRequest.setCanMerge(getPullRequestCanMergeById(Integer.parseInt(pullRequest.getId())));
             }
         }
-        
+
         return pullRequests;
     }
 
@@ -358,7 +357,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             throw new IOException("I/O error when accessing URL: " + url, e);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -491,7 +490,6 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     public List<BitbucketServerBranch> getBranches() throws IOException, InterruptedException {
         return getServerBranches(API_BRANCHES_PATH);
     }
-
 
     private List<BitbucketServerBranch> getServerBranches(String apiPath) throws IOException, InterruptedException {
         UriTemplate template = UriTemplate

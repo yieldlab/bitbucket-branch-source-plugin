@@ -106,7 +106,7 @@ public class Cache<K, V> {
     }
 
     private V doPut(final K key, final V value) {
-        entries.put(key, new Entry<V>(value));
+        entries.put(key, new Entry<>(value));
         return value;
     }
 

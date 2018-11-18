@@ -61,7 +61,6 @@ import org.mockito.Mockito;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 @RunWith(Parameterized.class)
@@ -87,7 +86,7 @@ public class SCMTraitCommitTest {
         @Override
         protected void decorateContext(SCMSourceContext<?, ?> context) {
             context.withFilter(new SCMHeadFilter() {
-                
+
                 @Override
                 public boolean isExcluded(SCMSourceRequest request, SCMHead head) throws IOException, InterruptedException {
                     BitbucketSCMSourceRequest bbRequest = (BitbucketSCMSourceRequest) request;

@@ -62,7 +62,7 @@ public class SCMNavigatorTest {
 
         List<String> observed = observer.getObserved();
         // Only 2 repositories match the pattern
-        assertTrue("There must be 2 repositories in the team, but was " + observed.size(), observed.size() == 2);
+        assertEquals("There must be 2 repositories in the team", 2, observed.size());
         assertEquals("repo1", observed.get(0));
         assertEquals("repo2", observed.get(1));
 
@@ -70,7 +70,7 @@ public class SCMNavigatorTest {
         for (ProjectObserver obs : observers) {
             List<SCMSource> sources = ((SCMSourceObserverImpl.ProjectObserverImpl) obs).getSources();
             // It should contain only one source
-            assertTrue("Only one source must be created per observed repository", sources.size() == 1);
+            assertEquals("Only one source must be created per observed repository", 1, sources.size());
             SCMSource scmSource = sources.get(0);
             assertTrue("BitbucketSCMSource instances must be added", scmSource instanceof BitbucketSCMSource);
             // Check correct repoOwner (team name in this case) was set
@@ -80,8 +80,8 @@ public class SCMNavigatorTest {
 
     private class SCMSourceObserverImpl extends SCMSourceObserver {
 
-        List<String> observed = new ArrayList<String>();
-        List<ProjectObserver> projectObservers = new ArrayList<SCMSourceObserver.ProjectObserver>();
+        List<String> observed = new ArrayList<>();
+        List<ProjectObserver> projectObservers = new ArrayList<>();
         TaskListener listener;
         SCMSourceOwner owner;
 
@@ -125,7 +125,7 @@ public class SCMNavigatorTest {
 
         public class ProjectObserverImpl extends ProjectObserver {
 
-            private List<SCMSource> sources = new ArrayList<SCMSource>();
+            private List<SCMSource> sources = new ArrayList<>();
 
             @Override
             public void addSource(@NonNull SCMSource source) {

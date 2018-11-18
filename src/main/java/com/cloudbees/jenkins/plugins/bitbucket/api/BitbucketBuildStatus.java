@@ -47,7 +47,7 @@ public class BitbucketBuildStatus {
     private String state;
 
     /**
-     * The URL to liunk from the status details
+     * The URL to link from the status details
      */
     private String url;
 

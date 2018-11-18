@@ -66,7 +66,7 @@ public class BitbucketGitSCMRevision extends SCMRevisionImpl {
 
     /**
      * Returns the author of this revision in GIT format.
-     * 
+     *
      * @return commit author in the following format &gt;name&lt; &gt;email&lt;
      */
     public String getAuthor() {
@@ -75,7 +75,7 @@ public class BitbucketGitSCMRevision extends SCMRevisionImpl {
 
     /**
      * Returns the message associated with this revision.
-     * 
+     *
      * @return revision message
      */
     public String getMessage() {
@@ -84,7 +84,7 @@ public class BitbucketGitSCMRevision extends SCMRevisionImpl {
 
     /**
      * Return the revision date in ISO format.
-     * 
+     *
      * @return date for this revision
      */
     public Date getDate() {

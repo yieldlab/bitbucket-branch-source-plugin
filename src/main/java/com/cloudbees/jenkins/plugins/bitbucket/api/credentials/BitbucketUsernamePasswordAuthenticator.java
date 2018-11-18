@@ -43,7 +43,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
  */
 public class BitbucketUsernamePasswordAuthenticator extends BitbucketAuthenticator {
 
-    private UsernamePasswordCredentials httpCredentials;
+    private final UsernamePasswordCredentials httpCredentials;
 
     /**
      * Constructor.

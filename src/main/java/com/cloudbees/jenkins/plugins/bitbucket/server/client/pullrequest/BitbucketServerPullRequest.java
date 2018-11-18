@@ -52,7 +52,7 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
     private String authorLogin;
 
     private String authorEmail;
-    
+
     private Boolean canMerge;
 
     @JsonProperty
@@ -129,11 +129,10 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
     public Boolean isCanMerge() {
         return canMerge;
     }
-    
+
     public void setCanMerge(Boolean canMerge) {
         this.canMerge = canMerge;
     }
-
 
     @JsonIgnore
     public Map<String, BitbucketHref> getLinks() {
@@ -202,6 +201,4 @@ public class BitbucketServerPullRequest implements BitbucketPullRequest {
             this.emailAddress = emailAddress;
         }
     }
-
-
 }

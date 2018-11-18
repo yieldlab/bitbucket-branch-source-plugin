@@ -131,7 +131,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 /**
  * SCM source implementation for Bitbucket.
- * 
+ *
  * It provides a way to discover/retrieve branches and pull requests through the Bitbucket REST API
  * which is much faster than the plain Git SCM source implementation.
  */
@@ -1423,7 +1423,7 @@ public class BitbucketSCMSource extends SCMSource {
 
         /**
          * Returns the author of this revision in GIT format.
-         * 
+         *
          * @return commit author in the following format &gt;name&lt; &gt;email&lt;
          */
         public String getAuthor() {
@@ -1432,7 +1432,7 @@ public class BitbucketSCMSource extends SCMSource {
 
         /**
          * Returns the message associated with this revision.
-         * 
+         *
          * @return revision message
          */
         public String getMessage() {
@@ -1441,7 +1441,7 @@ public class BitbucketSCMSource extends SCMSource {
 
         /**
          * Return the revision date in ISO format.
-         * 
+         *
          * @return date for this revision
          */
         public Date getDate() {
@@ -1569,7 +1569,7 @@ public class BitbucketSCMSource extends SCMSource {
     }
 
     private class BitbucketRevisionFactory<I> implements SCMSourceRequest.LazyRevisionLambda<SCMHead, SCMRevision, I> {
-        private BitbucketApi client;
+        private final BitbucketApi client;
 
         public BitbucketRevisionFactory(BitbucketApi client) {
             this.client = client;
@@ -1626,7 +1626,7 @@ public class BitbucketSCMSource extends SCMSource {
 
     private static class BranchHeadCommit implements BitbucketCommit {
 
-        private BitbucketBranch branch;
+        private final BitbucketBranch branch;
 
         public BranchHeadCommit(@NonNull final BitbucketBranch branch) {
             this.branch = branch;
@@ -1656,7 +1656,7 @@ public class BitbucketSCMSource extends SCMSource {
         public long getDateMillis() {
             return branch.getDateMillis();
         }
-        
+
     }
 
     private static class WrappedException extends RuntimeException {

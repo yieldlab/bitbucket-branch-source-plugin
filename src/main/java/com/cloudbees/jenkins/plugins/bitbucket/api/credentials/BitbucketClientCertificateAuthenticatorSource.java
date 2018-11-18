@@ -59,7 +59,7 @@ public class BitbucketClientCertificateAuthenticatorSource
     /**
      * Whether this source works in the given context. For client certs, only HTTPS BitbucketServer instances make sense
      *
-     * @param ctx
+     * @param ctx the context
      * @return whether or not this can authenticate given the context
      */
     @Override

@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class BitbucketServerRepositories {
-    
+
     private List<BitbucketServerRepository> values;
 
     private Integer size;
