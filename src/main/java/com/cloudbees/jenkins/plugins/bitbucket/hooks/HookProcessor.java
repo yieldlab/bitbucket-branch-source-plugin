@@ -36,7 +36,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Abstract hook processor.
- * 
+ *
  * Add new hook processors by extending this class and implement {@link #process(HookEventType, String, BitbucketType, String)},
  * extract owner and repository name from the hook payload and then call {@link #scmSourceReIndex(String, String)}
  * to launch a branch/PR reindexing on the matching SCMSource.
@@ -84,13 +84,13 @@ public abstract class HookProcessor {
 
     /**
      * To be called by implementations once the owner and the repository have been extracted from the payload.
-     * 
+     *
      * @param owner the repository owner as configured in the SCMSource
      * @param repository the repository name as configured in the SCMSource
      */
     protected void scmSourceReIndex(final String owner, final String repository) {
         ACL.impersonate(ACL.SYSTEM, new Runnable() {
-            @Override 
+            @Override
             public void run() {
                 boolean reindexed = false;
                 for (SCMSourceOwner scmOwner : SCMSourceOwners.all()) {

@@ -42,7 +42,7 @@ public interface BitbucketApi {
 
     /**
      * Returns the owner name for the repository.
-     * 
+     *
      * @return the repository owner name.
      */
     @NonNull
@@ -50,7 +50,7 @@ public interface BitbucketApi {
 
     /**
      * Returns the repository name.
-     * 
+     *
      * @return the repository name.
      */
     @CheckForNull
@@ -169,6 +169,18 @@ public interface BitbucketApi {
     BitbucketCommit resolveCommit(@NonNull String hash) throws IOException, InterruptedException;
 
     /**
+     * Resolve the head commit object of the pull request source repository branch.
+     *
+     * @param pull the pull request to resolve the source hash from
+     * @return the source head commit object
+     * @throws IOException if there was a network communications error.
+     * @throws InterruptedException if interrupted while waiting on remote communications.
+     * @since 2.2.14
+     */
+    @NonNull
+    BitbucketCommit resolveCommit(@NonNull BitbucketPullRequest pull) throws IOException, InterruptedException;
+
+    /**
      * Resolve the head commit hash of the pull request source repository branch.
      *
      * @param pull the pull request to resolve the source hash from
@@ -228,9 +240,9 @@ public interface BitbucketApi {
 
     /**
      * Returns the repositories where the user has the given role.
-     * 
-     * @param role Filter repositories by the owner having this role in. 
-     *             See {@link UserRoleInRepository} for more information. 
+     *
+     * @param role Filter repositories by the owner having this role in.
+     *             See {@link UserRoleInRepository} for more information.
      *             Use role = null if the repoOwner is a team ID.
      * @return the repositories list (it can be empty)
      * @throws IOException if there was a network communications error.
@@ -267,26 +279,26 @@ public interface BitbucketApi {
      * @throws InterruptedException if interrupted while waiting on remote communications.
      */
     boolean isPrivate() throws IOException, InterruptedException;
-    
+
     /**
      * Returns a list of all children file for the given folder.
-     * 
+     *
      * @param parent to list
      * @return a iterable of {@link SCMFile} children of the given folder.
      * @throws IOException if there was a network communications error.
      * @throws InterruptedException if interrupted while waiting on remote communications.
      */
-	@Restricted(NoExternalUse.class)
-	public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException;
-	
+    @Restricted(NoExternalUse.class)
+    public Iterable<SCMFile> getDirectoryContent(BitbucketSCMFile parent) throws IOException, InterruptedException;
+
     /**
      * Return an input stream for the given file.
-     * 
+     *
      * @param file and instance of SCM file
      * @return the stream of the given {@link SCMFile}
      * @throws IOException if there was a network communications error.
      * @throws InterruptedException if interrupted while waiting on remote communications.
      */
     @Restricted(NoExternalUse.class)
-	public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException;
+    public InputStream getFileContent(BitbucketSCMFile file) throws IOException, InterruptedException;
 }

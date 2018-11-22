@@ -25,14 +25,13 @@ package com.cloudbees.jenkins.plugins.bitbucket;
 
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepository;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.SCMNavigator;
-import jenkins.scm.api.SCMSourceObserver;
-import jenkins.scm.api.trait.SCMNavigatorRequest;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import jenkins.scm.api.SCMNavigator;
+import jenkins.scm.api.SCMSourceObserver;
+import jenkins.scm.api.trait.SCMNavigatorRequest;
 
 /**
  * The {@link SCMNavigatorRequest} for bitbucket.
@@ -44,7 +43,7 @@ public class BitbucketSCMNavigatorRequest extends SCMNavigatorRequest {
     /**
      * Map of all repositories found by this request
      */
-    private Map<String, BitbucketRepository> repositoryMap = new TreeMap<>();
+    private final Map<String, BitbucketRepository> repositoryMap = new TreeMap<>();
 
     /**
      * Constructor.
