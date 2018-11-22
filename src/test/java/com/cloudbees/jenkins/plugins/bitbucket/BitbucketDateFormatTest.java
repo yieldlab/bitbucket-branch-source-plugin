@@ -23,13 +23,12 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
-
-import org.junit.Test;
-
 import com.cloudbees.jenkins.plugins.bitbucket.JsonParser.BitbucketDateFormat;
 import com.cloudbees.jenkins.plugins.bitbucket.client.DateUtils;
+import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 // TODO remove this class after update to jackson2 (api-plugin) version 2.9.2
 public class BitbucketDateFormatTest {

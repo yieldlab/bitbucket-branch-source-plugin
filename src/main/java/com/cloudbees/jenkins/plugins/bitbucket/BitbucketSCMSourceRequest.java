@@ -40,7 +40,6 @@ import java.util.Set;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import jenkins.scm.api.mixin.TagSCMHead;
 import jenkins.scm.api.trait.SCMSourceRequest;
 
 /**
@@ -158,7 +157,7 @@ public class BitbucketSCMSourceRequest extends SCMSourceRequest {
                     if (((PullRequestSCMHead) h).getCheckoutStrategy() == ChangeRequestCheckoutStrategy.MERGE) {
                         branchNames.add(((PullRequestSCMHead) h).getTarget().getName());
                     }
-                } else if (h instanceof TagSCMHead) { // TODO replace with concrete class when tag support added
+                } else if (h instanceof BitbucketTagSCMHead) {
                     tagNames.add(h.getName());
                 }
             }
