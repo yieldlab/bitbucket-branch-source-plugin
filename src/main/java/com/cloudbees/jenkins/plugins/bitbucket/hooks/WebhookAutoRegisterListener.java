@@ -231,7 +231,7 @@ public class WebhookAutoRegisterListener extends ItemListener {
                         ? null
                         : BitbucketApiFactory.newInstance(
                                 endpoint.getServerUrl(),
-                                endpoint.credentials(),
+                                endpoint.authenticator(),
                                 source.getRepoOwner(),
                                 source.getRepository()
                         );
@@ -259,7 +259,7 @@ public class WebhookAutoRegisterListener extends ItemListener {
     }
 
     private List<BitbucketSCMSource> getBitbucketSCMSources(SCMSourceOwner owner) {
-        List<BitbucketSCMSource> sources = new ArrayList<BitbucketSCMSource>();
+        List<BitbucketSCMSource> sources = new ArrayList<>();
         for (SCMSource source : owner.getSCMSources()) {
             if (source instanceof BitbucketSCMSource) {
                 sources.add((BitbucketSCMSource) source);

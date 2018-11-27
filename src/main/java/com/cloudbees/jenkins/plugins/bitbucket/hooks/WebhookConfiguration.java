@@ -43,7 +43,6 @@ import jenkins.model.Jenkins;
 /**
  * Contains the webhook configuration
  */
- 
 public class WebhookConfiguration {
 
     /**
@@ -56,7 +55,7 @@ public class WebhookConfiguration {
             HookEventType.PULL_REQUEST_MERGED.getKey(),
             HookEventType.PULL_REQUEST_DECLINED.getKey()
     ));
-    
+
     /**
      * The list of events available in Bitbucket Server.
      */
@@ -71,16 +70,16 @@ public class WebhookConfiguration {
      * The title of the webhook.
      */
     private static final String description = "Jenkins hook";
-    
+
     /**
      * The comma separated list of committers to ignore.
      */
-    private String committersToIgnore;
-    
+    private final String committersToIgnore;
+
     public WebhookConfiguration() {
         this.committersToIgnore = null;
     }
-    
+
     public WebhookConfiguration(@CheckForNull final String committersToIgnore) {
         this.committersToIgnore = committersToIgnore;
     }
@@ -149,7 +148,7 @@ public class WebhookConfiguration {
         return false;
     }
 
-    BitbucketWebHook getHook(BitbucketSCMSource owner) {
+    public BitbucketWebHook getHook(BitbucketSCMSource owner) {
         final String serverUrl = owner.getServerUrl();
         if (BitbucketCloudEndpoint.SERVER_URL.equals(serverUrl)) {
             BitbucketRepositoryHook hook = new BitbucketRepositoryHook();

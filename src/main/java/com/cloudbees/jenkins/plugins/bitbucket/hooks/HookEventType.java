@@ -86,8 +86,8 @@ public enum HookEventType {
     SERVER_PING("diagnostics:ping", PingHookProcessor.class);
 
 
-    private String key;
-    private Class<?> clazz;
+    private final String key;
+    private final Class<?> clazz;
 
     <P extends HookProcessor> HookEventType(@NonNull String key, Class<P> clazz) {
         this.key = key;
@@ -107,9 +107,7 @@ public enum HookEventType {
     public HookProcessor getProcessor() {
         try {
             return (HookProcessor) clazz.newInstance();
-        } catch (InstantiationException e) {
-            throw new AssertionError("Can not instantiate hook payload processor: " + e.getMessage());
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             throw new AssertionError("Can not instantiate hook payload processor: " + e.getMessage());
         }
     }

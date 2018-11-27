@@ -24,16 +24,13 @@
 package com.cloudbees.jenkins.plugins.bitbucket.endpoints;
 
 import com.cloudbees.jenkins.plugins.bitbucket.client.BitbucketCloudApiClient;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.damnhandy.uri.template.UriTemplate;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.FormValidation;
-
 import java.util.List;
-import javax.annotation.Nonnull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -56,12 +53,12 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
      * {@code true} if caching should be used to reduce requests to Bitbucket.
      */
     private final boolean enableCache;
-    
+
     /**
      * How long, in minutes, to cache the team response.
      */
     private final int teamCacheDuration;
-    
+
     /**
      * How long, in minutes, to cache the repositories response.
      */
@@ -78,7 +75,7 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
      * @param teamCacheDuration How long, in minutes, to cache the team response.
      * @param repositoriesCacheDuration How long, in minutes, to cache the repositories response.
      * @param manageHooks   {@code true} if and only if Jenkins is supposed to auto-manage hooks for this end-point.
-     * @param credentialsId The {@link StandardUsernamePasswordCredentials#getId()} of the credentials to use for
+     * @param credentialsId The {@link StandardCredentials#getId()} of the credentials to use for
      *                      auto-management of hooks.
      */
     @DataBoundConstructor
@@ -96,11 +93,11 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
     public int getTeamCacheDuration() {
         return teamCacheDuration;
     }
-    
+
     public int getRepositoriesCacheDuration() {
         return repositoriesCacheDuration;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -139,7 +136,7 @@ public class BitbucketCloudEndpoint extends AbstractBitbucketEndpoint {
         /**
          * {@inheritDoc}
          */
-        @Nonnull
+        @NonNull
         @Override
         public String getDisplayName() {
             return Messages.BitbucketCloudEndpoint_displayName();

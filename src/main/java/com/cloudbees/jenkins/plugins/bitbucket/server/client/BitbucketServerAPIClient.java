@@ -23,10 +23,9 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.server.client;
 
-import static java.util.Objects.requireNonNull;
-
 import com.cloudbees.jenkins.plugins.bitbucket.JsonParser;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketApi;
+import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketBuildStatus;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketCommit;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketPullRequest;
@@ -36,6 +35,7 @@ import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRepositoryType;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketRequestException;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketTeam;
 import com.cloudbees.jenkins.plugins.bitbucket.api.BitbucketWebHook;
+import com.cloudbees.jenkins.plugins.bitbucket.api.credentials.BitbucketUsernamePasswordAuthenticator;
 import com.cloudbees.jenkins.plugins.bitbucket.client.repository.UserRoleInRepository;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.AbstractBitbucketEndpoint;
 import com.cloudbees.jenkins.plugins.bitbucket.endpoints.BitbucketEndpointConfiguration;
@@ -61,7 +61,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
 import hudson.Util;
-import hudson.util.Secret;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -112,11 +111,31 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Bitbucket API client.
  * Developed and test with Bitbucket 4.3.2
  */
 public class BitbucketServerAPIClient implements BitbucketApi {
+
+    /**
+     * Make available commit informations in a lazy way.
+     *
+     * @author Nikolas Falco
+     */
+    private class CommitClosure implements Callable<BitbucketCommit> {
+        private final String hash;
+
+        public CommitClosure(@NonNull String hash) {
+            this.hash = hash;
+        }
+
+        @Override
+        public BitbucketCommit call() throws Exception {
+            return resolveCommit(hash);
+        }
+    }
 
     private static final Logger LOGGER = Logger.getLogger(BitbucketServerAPIClient.class.getName());
     private static final String API_BASE_PATH = "/rest/api/1.0";
@@ -160,7 +179,7 @@ public class BitbucketServerAPIClient implements BitbucketApi {
      * Credentials to access API services.
      * Almost @NonNull (but null is accepted for anonymous access).
      */
-    private final UsernamePasswordCredentials credentials;
+    private final BitbucketAuthenticator authenticator;
 
     private HttpClientContext context;
 
@@ -168,16 +187,22 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private final BitbucketServerWebhookImplementation webhookImplementation;
 
+    @Deprecated
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
-        @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric) {
-        this(baseURL, owner, repositoryName, creds, userCentric, BitbucketServerEndpoint.findWebhookImplementation(baseURL));
+                                    @CheckForNull StandardUsernamePasswordCredentials credentials, boolean userCentric) {
+        this(baseURL, owner, repositoryName, credentials != null ? new BitbucketUsernamePasswordAuthenticator(credentials) : null,
+            userCentric, BitbucketServerEndpoint.findWebhookImplementation(baseURL));
     }
 
     public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
-            @CheckForNull StandardUsernamePasswordCredentials creds, boolean userCentric,
-            @NonNull BitbucketServerWebhookImplementation webhookImplementation) {
-        this.credentials = (creds != null) ? new UsernamePasswordCredentials(creds.getUsername(),
-                Secret.toString(creds.getPassword())) : null;
+                                    @CheckForNull BitbucketAuthenticator authenticator, boolean userCentric) {
+        this(baseURL, owner, repositoryName, authenticator, userCentric, BitbucketServerEndpoint.findWebhookImplementation(baseURL));
+    }
+
+    public BitbucketServerAPIClient(@NonNull String baseURL, @NonNull String owner, @CheckForNull String repositoryName,
+                                    @CheckForNull BitbucketAuthenticator authenticator, boolean userCentric,
+                                    @NonNull BitbucketServerWebhookImplementation webhookImplementation) {
+        this.authenticator = authenticator;
         this.userCentric = userCentric;
         this.owner = owner;
         this.repositoryName = repositoryName;
@@ -313,6 +338,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
             throws IOException, InterruptedException {
         List<BitbucketServerPullRequest> pullRequests = getResources(template, BitbucketServerPullRequests.class);
 
+        // set commit closure to make commit informations available when need, in a similar way to when request branches
+        for (BitbucketServerPullRequest pullRequest : pullRequests) {
+            setupClosureForPRBranch(pullRequest);
+        }
+
         AbstractBitbucketEndpoint endpointConfig = BitbucketEndpointConfiguration.get().findEndpoint(baseURL);
         if (endpointConfig instanceof BitbucketServerEndpoint && ((BitbucketServerEndpoint)endpointConfig).isCallCanMerge()) {
             // This is required for Bitbucket Server to update the refs/pull-requests/* references
@@ -323,6 +353,14 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         }
 
         return pullRequests;
+    }
+
+    private void setupClosureForPRBranch(BitbucketServerPullRequest pr) {
+        BitbucketServerBranch branch = (BitbucketServerBranch) pr.getSource().getBranch();
+        branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
+
+        branch = (BitbucketServerBranch) pr.getDestination().getBranch();
+        branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
     }
 
     private boolean getPullRequestCanMergeById(@NonNull Integer id) throws IOException {
@@ -354,7 +392,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
                 .expand();
         String response = getRequest(url);
         try {
-            return JsonParser.toJava(response, BitbucketServerPullRequest.class);
+            BitbucketServerPullRequest pr = JsonParser.toJava(response, BitbucketServerPullRequest.class);
+
+            setupClosureForPRBranch(pr);
+
+            return pr;
         } catch (IOException e) {
             throw new IOException("I/O error when accessing URL: " + url, e);
         }
@@ -469,7 +511,6 @@ public class BitbucketServerAPIClient implements BitbucketApi {
         return getServerBranches(API_BRANCHES_PATH);
     }
 
-
     private List<BitbucketServerBranch> getServerBranches(String apiPath) throws IOException, InterruptedException {
         UriTemplate template = UriTemplate
                 .fromTemplate(apiPath)
@@ -478,22 +519,14 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
         List<BitbucketServerBranch> branches = getResources(template, BitbucketServerBranches.class);
         for (final BitbucketServerBranch branch : branches) {
-            branch.setTimestampClosure(new Callable<Long>() {
-                @Override
-                public Long call() throws Exception {
-                    BitbucketCommit commit = resolveCommit(branch.getRawNode());
-                    if (commit != null) {
-                        return commit.getDateMillis();
-                    }
-                    return 0L;
-                }
-            });
+            branch.setCommitClosure(new CommitClosure(branch.getRawNode()));
         }
 
         return branches;
     }
 
     /** {@inheritDoc} */
+    @NonNull
     @Override
     public BitbucketCommit resolveCommit(@NonNull String hash) throws IOException {
         String url = UriTemplate
@@ -515,6 +548,12 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     @Override
     public String resolveSourceFullHash(@NonNull BitbucketPullRequest pull) {
         return pull.getSource().getCommit().getHash();
+    }
+
+    @NonNull
+    @Override
+    public BitbucketCommit resolveCommit(@NonNull BitbucketPullRequest pull) throws IOException, InterruptedException {
+        return resolveCommit(resolveSourceFullHash(pull));
     }
 
     @Override
@@ -693,37 +732,41 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     private <V> List<V> getResources(UriTemplate template, Class<? extends PagedApiResponse<V>> clazz) throws IOException, InterruptedException {
-        template.set("start", 0).set("limit", DEFAULT_PAGE_LIMIT);
-        String url = template.expand();
+        List<V> resources = new ArrayList<>();
 
-        try {
-            List<V> resources = new ArrayList<>();
-            String response = getRequest(url);
-            PagedApiResponse<V> page = JsonParser.toJava(response, clazz);
-            resources.addAll(page.getValues());
-            while (!page.isLastPage()) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                Integer limit = page.getLimit();
-                url = template
-                        .set("start", page.getNextPageStart())
-                        .set("limit", limit == null ? DEFAULT_PAGE_LIMIT : limit)
-                        .expand();
-                response = getRequest(url);
-                page = JsonParser.toJava(response, clazz);
-                resources.addAll(page.getValues());
+        PagedApiResponse<V> page;
+        Integer pageNumber = 0;
+        Integer limit = DEFAULT_PAGE_LIMIT;
+        do {
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
             }
-            return resources;
-        } catch (FileNotFoundException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new IOException("I/O error when accessing URL: " + url, e);
-        }
+            String url = template //
+                    .set("start", pageNumber) //
+                    .set("limit", limit) //
+                    .expand();
+            String response = getRequest(url);
+            try {
+                page = JsonParser.toJava(response, clazz);
+            } catch (IOException e) {
+                throw new IOException("I/O error when parsing response from URL: " + url, e);
+            }
+            resources.addAll(page.getValues());
+
+            limit = page.getLimit();
+            pageNumber = page.getNextPageStart();
+        } while (!page.isLastPage());
+
+
+        return resources;
     }
 
-    private String getRequest(String path) throws IOException {
+    protected String getRequest(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
+
+        if (authenticator != null) {
+            authenticator.configureRequest(httpget);
+        }
 
         try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
@@ -778,14 +821,11 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
         final String host = getMethodHost(request);
 
-        if (credentials != null) {
-            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY, credentials);
-            AuthCache authCache = new BasicAuthCache();
-            authCache.put(HttpHost.create(host), new BasicScheme());
+        if (authenticator != null) {
+            authenticator.configureBuilder(httpClientBuilder);
+
             context = HttpClientContext.create();
-            context.setCredentialsProvider(credentialsProvider);
-            context.setAuthCache(authCache);
+            authenticator.configureContext(context, HttpHost.create(host));
         }
 
         setClientProxyParams(host, httpClientBuilder);
@@ -830,6 +870,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
 
     private int getRequestStatus(String path) throws IOException {
         HttpGet httpget = new HttpGet(this.baseURL + path);
+        if (authenticator != null) {
+            authenticator.configureRequest(httpget);
+        }
 
         try(CloseableHttpClient client = getHttpClient(httpget);
                 CloseableHttpResponse response = client.execute(httpget, context)) {
@@ -871,6 +914,9 @@ public class BitbucketServerAPIClient implements BitbucketApi {
     }
 
     private String doRequest(HttpRequestBase request) throws IOException {
+        if (authenticator != null) {
+            authenticator.configureRequest(request);
+        }
 
         try(CloseableHttpClient client = getHttpClient(request);
                 CloseableHttpResponse response = client.execute(request, context)) {

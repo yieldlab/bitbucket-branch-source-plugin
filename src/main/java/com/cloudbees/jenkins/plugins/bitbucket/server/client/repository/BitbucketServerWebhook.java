@@ -17,9 +17,9 @@ public class BitbucketServerWebhook implements BitbucketWebHook {
     private String url;
     @JsonProperty("enabled")
     private boolean active;
-    
+
     @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)     // If null, don't marshal to allow for backwards compatibility
-    private String committersToIgnore; // Since Bitbucket Webhooks version 1.5.0 
+    private String committersToIgnore; // Since Bitbucket Webhooks version 1.5.0
 
     @Override
     public String getDescription() {

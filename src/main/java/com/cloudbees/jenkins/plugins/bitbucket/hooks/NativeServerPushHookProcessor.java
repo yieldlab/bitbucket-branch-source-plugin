@@ -23,8 +23,6 @@
  */
 package com.cloudbees.jenkins.plugins.bitbucket.hooks;
 
-import static java.util.Objects.requireNonNull;
-
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSource;
 import com.cloudbees.jenkins.plugins.bitbucket.BitbucketSCMSourceContext;
 import com.cloudbees.jenkins.plugins.bitbucket.BranchSCMHead;
@@ -57,6 +55,8 @@ import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+
+import static java.util.Objects.requireNonNull;
 
 public class NativeServerPushHookProcessor extends HookProcessor {
 

@@ -33,7 +33,7 @@ import java.io.IOException;
  */
 public class BitbucketChangesetCommentNotifier extends BitbucketNotifier {
 
-    private BitbucketApi bitbucket;
+    private final BitbucketApi bitbucket;
 
     public BitbucketChangesetCommentNotifier(@NonNull BitbucketApi bitbucket) {
         this.bitbucket = bitbucket;
