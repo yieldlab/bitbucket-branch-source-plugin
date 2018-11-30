@@ -81,6 +81,13 @@ public enum HookEventType {
     SERVER_PULL_REQUEST_DECLINED("pr:declined", NativeServerPullRequestHookProcessor.class),
 
     /**
+     * See <a href="https://confluence.atlassian.com/bitbucketserver054/event-payload-939508609.html#Eventpayload-Deleted">Eventpayload-Deleted</a>
+     *
+     * @since Bitbucket Server 5.4
+     */
+    SERVER_PULL_REQUEST_DELETED("pr:deleted", NativeServerPullRequestHookProcessor.class),
+
+    /**
      * Sent when hitting the {@literal "Test connection"} button in Bitbucket Server. Apparently undocumented.
      */
     SERVER_PING("diagnostics:ping", PingHookProcessor.class);

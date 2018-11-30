@@ -75,8 +75,9 @@ public class NativeServerPullRequestHookProcessor extends HookProcessor {
             case SERVER_PULL_REQUEST_OPENED:
                 eventType = SCMEvent.Type.CREATED;
                 break;
-            case SERVER_PULL_REQUEST_DECLINED:
             case SERVER_PULL_REQUEST_MERGED:
+            case SERVER_PULL_REQUEST_DECLINED:
+            case SERVER_PULL_REQUEST_DELETED:
                 eventType = SCMEvent.Type.REMOVED;
                 break;
             default:
