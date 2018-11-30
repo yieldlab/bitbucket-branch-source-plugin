@@ -117,10 +117,11 @@ public class NativeServerPullRequestHookProcessor extends HookProcessor {
                 : ctx.forkPRStrategies();
             final Map<SCMHead, SCMRevision> result = new HashMap<>(strategies.size());
             for (final ChangeRequestCheckoutStrategy strategy : strategies) {
+                final String originalBranchName = pullRequest.getSource().getBranch().getName();
                 final String branchName = String.format("PR-%s%s", pullRequest.getId(),
                     strategies.size() > 1 ? "-" + Ascii.toLowerCase(strategy.name()) : "");
                 final PullRequestSCMHead head = new PullRequestSCMHead(branchName, source.getRepoOwner(), source.getRepository(),
-                    BitbucketRepositoryType.GIT, branchName, pullRequest, headOrigin, strategy);
+                    BitbucketRepositoryType.GIT, originalBranchName, pullRequest, headOrigin, strategy);
 
                 switch (getType()) {
                     case CREATED:

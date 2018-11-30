@@ -196,11 +196,12 @@ public class NativeServerPushHookProcessor extends HookProcessor {
                             continue; // Skip non-merge builds if the changed ref is not the source of the PR.
                         }
 
+                        final String originalBranchName = pullRequest.getSource().getBranch().getName();
                         final String branchName = String.format("PR-%s%s", pullRequest.getId(),
                             strategies.size() > 1 ? "-" + Ascii.toLowerCase(strategy.name()) : "");
 
-                        final PullRequestSCMHead head = new PullRequestSCMHead(branchName, sourceOwnerName,
-                            sourceRepoName, BitbucketRepositoryType.GIT, branchName, pullRequest, headOrigin, strategy);
+                        final PullRequestSCMHead head = new PullRequestSCMHead(branchName, sourceOwnerName, sourceRepoName,
+                            BitbucketRepositoryType.GIT, originalBranchName, pullRequest, headOrigin, strategy);
 
                         final String targetHash = pullRequest.getDestination().getCommit().getHash();
                         final String pullHash = pullRequest.getSource().getCommit().getHash();
