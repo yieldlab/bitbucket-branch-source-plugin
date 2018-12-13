@@ -28,6 +28,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.damnhandy.uri.template.UriTemplate;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -149,6 +150,14 @@ public class BitbucketServerEndpoint extends AbstractBitbucketEndpoint {
         return repoOwner.startsWith("~")
                 ? template.set("userOrProject", "users").set("owner", repoOwner.substring(1)).expand()
                 : template.set("userOrProject", "projects").set("owner", repoOwner).expand();
+    }
+
+    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "Only non-null after we set them here!")
+    private Object readResolve() {
+        if (webhookImplementation == null) {
+            webhookImplementation = BitbucketServerWebhookImplementation.PLUGIN;
+        }
+        return this;
     }
 
     @NonNull
